@@ -49,10 +49,6 @@ class LoginScreen extends HookWidget {
         port: connectionSettings.value.port,
         userAtDomain: user.value.username,
         password: user.value.password,
-        onMessageReceived: (String msg) {
-          // messages.value = [...messages.value, msg];
-          // print(messages.value.toList());
-        },
       );
       try {
         isBusy.value = true;

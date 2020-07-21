@@ -9,7 +9,9 @@ class ChatClient {
   final String password;
   final int port;
   final String host;
-  final Function onMessageReceived;
+  MessagesListener _messagesListener;
+  xmpp.MessageHandler _messageHandler;
+  xmpp.ConnectionStateChangedListener _connectionStateChangedListener;
   xmpp.Connection _connection;
 
   ChatClient({
@@ -17,7 +19,6 @@ class ChatClient {
     this.password,
     this.port,
     this.host,
-    this.onMessageReceived,
   });
 
   Future<void> connect() async {
@@ -33,9 +34,7 @@ class ChatClient {
     _connection = xmpp.Connection(account);
     _connection.connect();
 
-    xmpp.MessagesListener messagesListener =
-        MessagesListener(onMessageReceived);
-    ConnectionStateChangedListener(_connection, messagesListener);
+    _messageHandler = xmpp.MessageHandler.getInstance(_connection);
     xmpp.PresenceManager presenceManager =
         xmpp.PresenceManager.getInstance(_connection);
     presenceManager.subscriptionStream.listen((streamEvent) {
@@ -44,13 +43,20 @@ class ChatClient {
         presenceManager.acceptSubscription(streamEvent.jid);
       }
     });
+    // _connectionStateChangedListener = ConnectionStateChangedListener(
+    //   _connection,
+    //   _messagesListener,
+    // );
+  }
+
+  void addMessageListener(Function onMessageReceived) {
+    _messagesListener = MessagesListener(onMessageReceived);
+    _messageHandler.messagesStream.listen(_messagesListener.onNewMessage);
   }
 
   void sendMessage(String receiver, String msg) {
     xmpp.Jid receiverJid = xmpp.Jid.fromFullJid(receiver);
-    xmpp.MessageHandler messageHandler =
-        xmpp.MessageHandler.getInstance(_connection);
-    messageHandler.sendMessage(receiverJid, msg);
+    _messageHandler.sendMessage(receiverJid, msg);
   }
 
   Stream<String> getConsoleStream() {

@@ -12,6 +12,11 @@ class ChatScreen extends HookWidget {
   Widget build(BuildContext context) {
     ValueNotifier<List<String>> messages = useState([]);
 
+    handleReceive(String message) {
+      print("handleReceive: $message");
+      messages.value = [...messages.value, message];
+    }
+
     handleSend(String message) {
       args.chatClient.sendMessage(
         args.buddy.username,
@@ -19,6 +24,11 @@ class ChatScreen extends HookWidget {
       );
       messages.value = [...messages.value, message];
     }
+
+    useEffect(() {
+      args.chatClient.addMessageListener(handleReceive);
+      return () {};
+    }, const []);
 
     double height = MediaQuery.of(context).size.height;
     return Scaffold(
