@@ -1,89 +1,66 @@
 import 'package:chat/chatclient/client.dart';
+import 'package:chat/models/buddy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-void main() {
-  runApp(ChatApp());
-}
+class ChatScreen extends HookWidget {
+  final ChatScreenArgs args;
 
-class ChatApp extends HookWidget {
+  const ChatScreen({this.args});
+
   @override
   Widget build(BuildContext context) {
     ValueNotifier<List<String>> messages = useState([]);
-    ValueNotifier<ChatClient> chatClient = useState(
-      ChatClient(
-        host: "192.168.29.177",
-        port: 5222,
-        userAtDomain: "user1@xmpp1.ddplabs.com",
-        password: "user1",
-        onMessageReceived: (String msg) {
-          messages.value = [...messages.value, msg];
-          print(messages.value.toList());
-        },
-      ),
-    );
-    useEffect(() {
-      chatClient.value.connect();
-      return () {};
-    }, const []);
 
-    return MaterialApp(
-      title: "Chat",
-      home: Scaffold(
-        body: ChatPage(
-          messages: messages.value,
-          onSend: (String msg) {
-            chatClient.value.sendMessage(
-              "user2@xmpp1.ddplabs.com",
-              msg,
-            );
-          },
+    handleSend(String message) {
+      args.chatClient.sendMessage(
+        args.buddy.username,
+        message,
+      );
+      messages.value = [...messages.value, message];
+    }
+
+    double height = MediaQuery.of(context).size.height;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          args.buddy.username,
+        ),
+      ),
+      body: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          children: [
+            SizedBox(
+              height: height * 0.8,
+              child: Column(
+                children: [
+                  for (String msg in messages.value)
+                    ListTile(
+                      title: Text(
+                        msg,
+                      ),
+                    )
+                ],
+              ),
+            ),
+            Container(
+              child: TextField(
+                onSubmitted: handleSend,
+                decoration: InputDecoration(
+                  hintText: "Type a message",
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class ChatPage extends StatelessWidget {
-  final List<String> messages;
-  final Function onSend;
-
-  const ChatPage({
-    Key key,
-    @required this.messages,
-    @required this.onSend,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    double height = MediaQuery.of(context).size.height;
-    return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: Column(
-        children: [
-          SizedBox(
-            height: height * 0.8,
-            child: Column(
-              children: [
-                for (String msg in messages)
-                  ListTile(
-                    title: Text(
-                      msg,
-                    ),
-                  )
-              ],
-            ),
-          ),
-          Container(
-            child: TextField(
-              onSubmitted: onSend,
-              decoration: InputDecoration(
-                hintText: "Type a message",
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+class ChatScreenArgs {
+  final ChatClient chatClient;
+  final Buddy buddy;
+  ChatScreenArgs({this.chatClient, this.buddy});
 }

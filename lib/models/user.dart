@@ -1,4 +1,4 @@
-import 'package:chat/chatclient/storage/storage.dart';
+import 'package:chat/storage/storage.dart';
 import 'package:sqflite/sqflite.dart';
 
 class User {

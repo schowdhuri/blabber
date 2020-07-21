@@ -1,4 +1,5 @@
 import 'package:chat/screens/buddylist/buddy_list_screen.dart';
+import 'package:chat/screens/chat/chat_screen.dart';
 import 'package:chat/screens/login/login_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -19,6 +20,12 @@ class ChatApp extends StatelessWidget {
       BuddyListScreenArgs args = settings.arguments;
       return MaterialPageRoute(builder: (BuildContext context) {
         return BuddyListScreen(args: args);
+      });
+    }
+    if (settings.name == "/chat") {
+      ChatScreenArgs args = settings.arguments;
+      return MaterialPageRoute(builder: (BuildContext context) {
+        return ChatScreen(args: args);
       });
     }
     return MaterialPageRoute(
