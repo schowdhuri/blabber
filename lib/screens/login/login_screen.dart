@@ -1,12 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:chat/chatclient/client.dart';
 import 'package:chat/models/connection_settings.dart';
 import 'package:chat/models/user.dart';
 import 'package:chat/screens/buddylist/buddy_list_screen.dart';
-import 'package:chat/screens/login_screen/login_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 
-class LoginFormScreen extends HookWidget {
+class LoginScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     ValueNotifier<bool> shouldRemember = useState(true);
@@ -15,52 +14,89 @@ class LoginFormScreen extends HookWidget {
     ValueNotifier<User> user = useState(User());
     ValueNotifier<GlobalKey<FormState>> formKey =
         useState(GlobalKey<FormState>());
-    ValueNotifier<bool> isComplete = useState(false);
     ValueNotifier<ChatClient> chatClient = useState(ChatClient());
-    ValueNotifier<bool> isConnected = useState(false);
+    ValueNotifier<bool> isBusy = useState(false);
+    ValueNotifier<bool> hasLoadedSettings = useState(false);
+    loadSettings() async {
+      isBusy.value = true;
+      UserProvider userProvider = new UserProvider();
+      ConnectionSettingsProvider connectionSettingsProvider =
+          new ConnectionSettingsProvider();
+      List<Future> futures = [
+        userProvider.get(),
+        connectionSettingsProvider.get(),
+      ];
+      List result = await Future.wait(futures);
+      if (result[0] != null && result[1] != null) {
+        user.value = result[0];
+        connectionSettings.value = result[1];
+        hasLoadedSettings.value = true;
+        print("Loaded settings from DB");
+      } else {
+        print("Settings not found");
+        isBusy.value = false;
+      }
+    }
 
     handleChangeRememberMe(bool val) {
       shouldRemember.value = val;
     }
 
-    useEffect(() {
-      if (isComplete.value) {
-        chatClient.value = ChatClient(
-          host: connectionSettings.value.host,
-          port: connectionSettings.value.port,
-          userAtDomain: user.value.username,
-          password: user.value.password,
-          onMessageReceived: (String msg) {
-            // messages.value = [...messages.value, msg];
-            // print(messages.value.toList());
-          },
+    doLogin() async {
+      print("Logging in...");
+      chatClient.value = ChatClient(
+        host: connectionSettings.value.host,
+        port: connectionSettings.value.port,
+        userAtDomain: user.value.username,
+        password: user.value.password,
+        onMessageReceived: (String msg) {
+          // messages.value = [...messages.value, msg];
+          // print(messages.value.toList());
+        },
+      );
+      try {
+        isBusy.value = true;
+        await chatClient.value.connect();
+        await Future.delayed(Duration(seconds: 3));
+        Navigator.of(context).pushReplacementNamed(
+          "/buddylist",
+          arguments: BuddyListScreenArgs(chatClient: chatClient.value),
         );
-        try {
-          chatClient.value.connect();
-          isConnected.value = true;
-        } catch (ex0) {
-          print("Uh oh ${ex0.toString()}");
-        }
+      } catch (ex0) {
+        print("Uh oh ${ex0.toString()}");
       }
-      return () {};
-    }, [isComplete.value]);
+    }
+
+    handleSubmit() async {
+      if (!formKey.value.currentState.validate()) {
+        return;
+      }
+      formKey.value.currentState.save();
+      UserProvider userProvider = new UserProvider();
+      ConnectionSettingsProvider connectionSettingsProvider =
+          new ConnectionSettingsProvider();
+      print(
+          "About to save: ${user.value.toMap()} and\n${connectionSettings.value.toMap()}");
+      List<Future> futures = [
+        userProvider.save(user.value),
+        connectionSettingsProvider.save(connectionSettings.value),
+      ];
+      await Future.wait(futures);
+      // doLogin();
+    }
 
     useEffect(() {
-      isConnected.addListener(() async {
-        if (isConnected.value) {
-          print("~~~~ Connected ~~~~");
-          await Future.delayed(Duration(seconds: 3));
-          Navigator.of(context).pushReplacementNamed(
-            "/buddylist",
-            arguments: BuddyListScreenArgs(chatClient: chatClient.value),
-          );
+      hasLoadedSettings.addListener(() {
+        if (hasLoadedSettings.value) {
+          doLogin();
         }
       });
+      loadSettings();
       return () {};
     }, const []);
 
     return Scaffold(
-      body: isConnected.value
+      body: isBusy.value
           ? Center(
               child: CircularProgressIndicator(),
             )
@@ -74,6 +110,7 @@ class LoginFormScreen extends HookWidget {
                     children: [
                       TextFormField(
                         autocorrect: false,
+                        initialValue: "192.168.29.177",
                         decoration: InputDecoration(
                           hintText: "eg: 127.0.0.1",
                           labelText: "Server Host",
@@ -90,11 +127,11 @@ class LoginFormScreen extends HookWidget {
                       ),
                       TextFormField(
                         autocorrect: false,
+                        initialValue: "5222",
                         decoration: InputDecoration(
                           hintText: "eg: 5222",
                           labelText: "Port",
                         ),
-                        initialValue: "5222",
                         keyboardType: TextInputType.numberWithOptions(
                           decimal: false,
                           signed: false,
@@ -111,6 +148,7 @@ class LoginFormScreen extends HookWidget {
                       ),
                       TextFormField(
                         autocorrect: false,
+                        initialValue: "user1@xmpp1.ddplabs.com",
                         decoration: InputDecoration(labelText: "Username"),
                         validator: (String val) {
                           if (val.isEmpty) {
@@ -149,12 +187,7 @@ class LoginFormScreen extends HookWidget {
                               color: Colors.blueAccent,
                               textColor: Colors.white,
                               padding: EdgeInsets.symmetric(vertical: 20),
-                              onPressed: () {
-                                if (formKey.value.currentState.validate()) {
-                                  formKey.value.currentState.save();
-                                  isComplete.value = true;
-                                }
-                              },
+                              onPressed: handleSubmit,
                               child: Text(
                                 "Login",
                                 style: TextStyle(fontSize: 16),

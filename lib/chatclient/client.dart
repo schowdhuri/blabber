@@ -1,5 +1,6 @@
 import 'dart:convert';
 import "package:console/console.dart";
+import 'package:flutter/foundation.dart';
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 import 'package:chat/chatclient/conn_state_change_listener.dart';
 import 'package:chat/chatclient/message_listener.dart';
@@ -10,7 +11,6 @@ class ChatClient {
   final int port;
   final String host;
   final Function onMessageReceived;
-
   xmpp.Connection _connection;
 
   ChatClient({
@@ -21,7 +21,7 @@ class ChatClient {
     this.onMessageReceived,
   });
 
-  void connect() {
+  Future<void> connect() async {
     xmpp.Jid jid = xmpp.Jid.fromFullJid(userAtDomain);
     xmpp.XmppAccountSettings account = xmpp.XmppAccountSettings(
       userAtDomain,
@@ -34,17 +34,17 @@ class ChatClient {
     _connection = xmpp.Connection(account);
     _connection.connect();
 
-    xmpp.MessagesListener messagesListener =
-        MessagesListener(onMessageReceived);
-    ConnectionStateChangedListener(_connection, messagesListener);
-    xmpp.PresenceManager presenceManager =
-        xmpp.PresenceManager.getInstance(_connection);
-    presenceManager.subscriptionStream.listen((streamEvent) {
-      if (streamEvent.type == xmpp.SubscriptionEventType.REQUEST) {
-        print("Accepting presence request");
-        presenceManager.acceptSubscription(streamEvent.jid);
-      }
-    });
+    // xmpp.MessagesListener messagesListener =
+    //     MessagesListener(onMessageReceived);
+    // ConnectionStateChangedListener(_connection, messagesListener);
+    // xmpp.PresenceManager presenceManager =
+    //     xmpp.PresenceManager.getInstance(_connection);
+    // presenceManager.subscriptionStream.listen((streamEvent) {
+    //   if (streamEvent.type == xmpp.SubscriptionEventType.REQUEST) {
+    //     print("Accepting presence request");
+    //     presenceManager.acceptSubscription(streamEvent.jid);
+    //   }
+    // });
   }
 
   void sendMessage(String receiver, String msg) {

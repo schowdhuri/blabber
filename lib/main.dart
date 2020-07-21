@@ -1,6 +1,5 @@
 import 'package:chat/screens/buddylist/buddy_list_screen.dart';
-import 'package:chat/screens/login_form/login_form_screen.dart';
-import 'package:chat/screens/login_screen/login_screen.dart';
+import 'package:chat/screens/login/login_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -12,15 +11,9 @@ class ChatApp extends StatelessWidget {
     if (settings.name == "/") {
       return MaterialPageRoute(
         builder: (BuildContext context) {
-          return LoginFormScreen();
+          return LoginScreen();
         },
       );
-    }
-    if (settings.name == "/dologin") {
-      LoginScreenArgs args = settings.arguments;
-      return MaterialPageRoute(builder: (BuildContext context) {
-        return LoginScreen(args: args);
-      });
     }
     if (settings.name == "/buddylist") {
       BuddyListScreenArgs args = settings.arguments;
