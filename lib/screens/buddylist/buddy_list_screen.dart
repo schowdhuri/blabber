@@ -58,15 +58,15 @@ class BuddyListScreen extends HookWidget {
       buddies.value = await buddyProvider.getAll();
     }
 
-    handleOpenChat(Buddy buddy) => () {
-          Navigator.of(context).pushNamed(
-            "/chat",
-            arguments: ChatScreenArgs(
-              buddy: buddy,
-              chatClient: args.chatClient,
-            ),
-          );
-        };
+    handleOpenChat(Buddy buddy) {
+      Navigator.of(context).pushNamed(
+        "/chat",
+        arguments: ChatScreenArgs(
+          buddy: buddy,
+          chatClient: args.chatClient,
+        ),
+      );
+    }
 
     handleOpenEditMode(List<Buddy> initSelected) {
       isEditMode.value = true;

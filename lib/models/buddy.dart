@@ -1,9 +1,9 @@
+import 'package:chat/models/user.dart';
 import 'package:chat/storage/storage.dart';
 import 'package:sqflite/sqflite.dart';
 
-class Buddy {
-  String username;
-  Buddy({this.username});
+class Buddy extends User {
+  Buddy({String username}) : super(username: username);
 
   static Buddy fromMap(Map<String, dynamic> data) {
     return Buddy(
@@ -11,6 +11,7 @@ class Buddy {
     );
   }
 
+  @override
   Map<String, dynamic> toMap() {
     return {
       "username": username,
