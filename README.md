@@ -1,16 +1,21 @@
-# chat
+# Blabber
 
-A new Flutter project.
+Chat over the XMPP protocol
 
-## Getting Started
+## Server
 
-This project is a starting point for a Flutter application.
+Clone the repo below and spin up the docker image:
+https://github.com/schowdhuri/docker-openfire-mariadb
 
-A few resources to get you started if this is your first Flutter project:
+## Todo
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- [x] Connecting to OpenFire
+- [x] Save/Load username, password, server settings
+- [x] Buddy list
+- [x] Add/Remove buddies
+- [x] Chat screen
+- [ ] Save chat history
+- [ ] Clear/reset preferences
+- [ ] Buddy approval
+- [ ] Online presence
+- [ ] Better buddy list
