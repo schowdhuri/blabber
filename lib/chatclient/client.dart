@@ -1,7 +1,6 @@
 import 'dart:convert';
 import "package:console/console.dart";
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
-import 'package:chat/chatclient/conn_state_change_listener.dart';
 import 'package:chat/chatclient/message_listener.dart';
 
 class ChatClient {
@@ -11,7 +10,6 @@ class ChatClient {
   final String host;
   MessagesListener _messagesListener;
   xmpp.MessageHandler _messageHandler;
-  xmpp.ConnectionStateChangedListener _connectionStateChangedListener;
   xmpp.Connection _connection;
 
   ChatClient({

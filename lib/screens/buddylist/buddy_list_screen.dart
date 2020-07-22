@@ -1,8 +1,12 @@
-import 'package:chat/models/buddy.dart';
-import 'package:chat/screens/chat/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:chat/chatclient/client.dart';
+
+import '../../chatclient/client.dart';
+import '../../models/buddy.dart';
+import '../chat/chat_screen.dart';
+import 'components/add_buddy.dart';
+import './components/buddy_row.dart';
+import './components/buddy_row_edit.dart';
 
 class BuddyListScreen extends HookWidget {
   final BuddyListScreenArgs args;
@@ -11,7 +15,8 @@ class BuddyListScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     ValueNotifier<List<Buddy>> buddies = useState([]);
-
+    ValueNotifier<bool> isEditMode = useState(false);
+    ValueNotifier<List<Buddy>> selectedBuddies = useState([]);
     handleAdd(String username) async {
       BuddyProvider buddyProvider = BuddyProvider();
       Buddy buddy = await buddyProvider.add(
@@ -22,14 +27,21 @@ class BuddyListScreen extends HookWidget {
       buddies.value = [...buddies.value, buddy];
     }
 
-    handleDelete(Buddy buddy) => () async {
+    handleDelete(BuildContext context) => () async {
+          print(selectedBuddies.value);
           BuddyProvider buddyProvider = BuddyProvider();
-          await buddyProvider.remove(buddy);
-          int index = buddies.value.indexOf(buddy);
-          buddies.value = [
-            ...buddies.value.sublist(0, index),
-            ...buddies.value.sublist(index + 1),
-          ];
+          List<Future> fArr = selectedBuddies.value
+              .map(
+                (Buddy b) => buddyProvider.remove(b),
+              )
+              .toList();
+          await Future.wait(fArr);
+          List<Buddy> _buddies = buddies.value;
+          _buddies.removeWhere(
+            (Buddy b) => selectedBuddies.value.indexOf(b) >= 0,
+          );
+          buddies.value = _buddies;
+          Navigator.of(context).pop();
         };
 
     showForm() {
@@ -56,6 +68,30 @@ class BuddyListScreen extends HookWidget {
           );
         };
 
+    handleOpenEditMode(List<Buddy> initSelected) {
+      isEditMode.value = true;
+      selectedBuddies.value = initSelected;
+      ModalRoute.of(context).addLocalHistoryEntry(
+        LocalHistoryEntry(
+          onRemove: () {
+            isEditMode.value = false;
+          },
+        ),
+      );
+    }
+
+    handleChangeSelection(Buddy buddy, bool isSelected) {
+      if (isSelected) {
+        selectedBuddies.value = [...selectedBuddies.value, buddy];
+      } else {
+        int index = selectedBuddies.value.indexOf(buddy);
+        selectedBuddies.value = [
+          ...selectedBuddies.value.sublist(0, index),
+          ...selectedBuddies.value.sublist(index + 1),
+        ];
+      }
+    }
+
     useEffect(() {
       loadBuddies();
       return () {};
@@ -63,87 +99,37 @@ class BuddyListScreen extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: Container(),
+        leading: isEditMode.value ? null : Container(),
         title: Text("Buddies"),
         actions: [
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: showForm,
-          )
+          isEditMode.value
+              ? IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: handleDelete(context),
+                )
+              : IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: showForm,
+                )
         ],
       ),
       body: ListView.separated(
         itemBuilder: (BuildContext context, int index) {
-          return ListTile(
-            onTap: handleOpenChat(buddies.value[index]),
-            leading: Icon(Icons.person_outline),
-            title: Text(buddies.value[index].username),
-            trailing: IconButton(
-              icon: Icon(
-                Icons.delete,
-                color: Colors.red,
-              ),
-              onPressed: handleDelete(
-                buddies.value[index],
-              ),
-            ),
-          );
+          return isEditMode.value
+              ? BuddyRowEditable(
+                  buddy: buddies.value[index],
+                  onChangeSelection: handleChangeSelection,
+                  isSelected:
+                      selectedBuddies.value.indexOf(buddies.value[index]) >= 0)
+              : BuddyRow(
+                  buddy: buddies.value[index],
+                  onOpenChat: handleOpenChat,
+                  onOpenEditMode: handleOpenEditMode,
+                );
         },
         separatorBuilder: (_, __) => Divider(),
         itemCount: buddies.value.length,
       ),
-    );
-  }
-}
-
-class AddBuddy extends HookWidget {
-  final Function onAdd;
-  const AddBuddy({
-    Key key,
-    this.onAdd,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    ValueNotifier<String> username = useState("");
-    handleCancel() {
-      Navigator.of(context).pop();
-    }
-
-    addBuddy() {
-      if (username.value.isEmpty) {
-        return;
-      }
-      onAdd(username.value);
-      Navigator.of(context).pop();
-    }
-
-    return AlertDialog(
-      content: TextField(
-        decoration: InputDecoration(
-          labelText: "Username",
-          hintText: "eg: user2@xmpp1.ddplabs.com",
-        ),
-        onSubmitted: (String val) {
-          username.value = val;
-          addBuddy();
-        },
-      ),
-      actions: [
-        FlatButton(
-          onPressed: handleCancel,
-          child: Text("CANCEL"),
-        ),
-        FlatButton(
-          onPressed: addBuddy,
-          child: Text(
-            "ADD",
-            style: TextStyle(
-              color: Theme.of(context).primaryColor,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
