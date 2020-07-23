@@ -1,4 +1,5 @@
 import 'package:chat/chatclient/chat_provider.dart';
+import 'package:chat/models/chat_history.dart';
 import 'package:chat/screens/chat/components/chat_bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -19,16 +20,8 @@ class ChatScreen extends HookWidget {
     ValueNotifier<ScrollController> scrollController =
         useState(ScrollController());
 
-    void handleReceive(String message) async {
-      messages.value = <ChatMessage>[
-        ...messages.value,
-        ChatMessage(
-          from: args.buddy,
-          text: message,
-          timestamp: DateTime.now(),
-        ),
-      ];
-      await Future.delayed(Duration(milliseconds: 500));
+    Future<void> scrollToBottom() async {
+      await Future.delayed(Duration(milliseconds: 250));
       scrollController.value.animateTo(
         scrollController.value.position.maxScrollExtent,
         duration: Duration(milliseconds: 250),
@@ -36,25 +29,57 @@ class ChatScreen extends HookWidget {
       );
     }
 
-    void handleSend(String message) async {
-      Provider.of<ChatProvider>(context, listen: false).sendMessage(
-        args.buddy.username,
-        message,
+    Future<void> getChatHistory() async {
+      ChatHistoryProvider chProvider = ChatHistoryProvider();
+      ChatHistory chatHistory = await chProvider.get(args.buddy);
+      if (chatHistory != null) {
+        messages.value = chatHistory.getChatMessages(args.buddy);
+        await scrollToBottom();
+      }
+    }
+
+    useEffect(() {
+      getChatHistory();
+      return () {};
+    }, const []);
+
+    void handleReceive(String message) async {
+      ChatMessage chatMessage = ChatMessage(
+        from: args.buddy,
+        text: message,
+        timestamp: DateTime.now(),
       );
-      messages.value = [
+      messages.value = <ChatMessage>[
         ...messages.value,
-        ChatMessage(
-          to: args.buddy,
-          text: message,
-          timestamp: DateTime.now(),
-        ),
+        chatMessage,
       ];
-      await Future.delayed(Duration(milliseconds: 250));
+      await Future.delayed(Duration(milliseconds: 500));
       scrollController.value.animateTo(
         scrollController.value.position.maxScrollExtent,
         duration: Duration(milliseconds: 250),
         curve: Curves.linear,
       );
+      ChatHistoryProvider chProvider = ChatHistoryProvider();
+      await chProvider.add(args.buddy, chatMessage);
+    }
+
+    void handleSend(String message) async {
+      Provider.of<ChatProvider>(context, listen: false).sendMessage(
+        args.buddy.username,
+        message,
+      );
+      ChatMessage chatMessage = ChatMessage(
+        to: args.buddy,
+        text: message,
+        timestamp: DateTime.now(),
+      );
+      messages.value = [
+        ...messages.value,
+        chatMessage,
+      ];
+      await scrollToBottom();
+      ChatHistoryProvider chProvider = ChatHistoryProvider();
+      await chProvider.add(args.buddy, chatMessage);
     }
 
     bool isContinued(int index) {

@@ -15,22 +15,39 @@ class Storage {
           db.execute(
             "CREATE TABLE server_settings ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            "host TEXT,"
-            "port TEXT"
+            "host TEXT NOT NULL,"
+            "port TEXT NOT NULL"
             ")",
           ),
           db.execute(
             "CREATE TABLE user ("
             "username TEXT PRIMARY KEY,"
-            "password TEXT"
+            "password TEXT NOT NULL"
             ")",
           ),
           db.execute(
             "CREATE TABLE buddy ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            "username TEXT UNIQUE"
+            "username TEXT UNIQUE NOT NULL"
             ")",
-          )
+          ),
+          db.execute(
+            "CREATE TABLE chat_history ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "buddy TEXT NOT NULL,"
+            "FOREIGN KEY (buddy) REFERENCES buddy(username)"
+            ")",
+          ),
+          db.execute(
+            "CREATE TABLE chat_history_message ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "history_id INTEGER NOT NULL,"
+            "sender TEXT,"
+            "message TEXT NOT NULL,"
+            "timestamp DATE NOT NULL,"
+            "FOREIGN KEY (history_id) REFERENCES chat_history(id)"
+            ")",
+          ),
         ];
         return Future.wait(arr);
       },
