@@ -14,7 +14,9 @@ https://github.com/schowdhuri/docker-openfire-mariadb
 - [x] Buddy list
 - [x] Add/Remove buddies
 - [x] Chat screen
+- [x] Isolates
 - [ ] Save chat history
+- [ ] Push notifications
 - [ ] Clear/reset preferences
 - [ ] Buddy approval
 - [ ] Online presence
