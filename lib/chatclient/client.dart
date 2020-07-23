@@ -19,7 +19,7 @@ class ChatClient {
     this.host,
   });
 
-  Future<void> connect() async {
+  Future<bool> connect() async {
     xmpp.Jid jid = xmpp.Jid.fromFullJid(userAtDomain);
     xmpp.XmppAccountSettings account = xmpp.XmppAccountSettings(
       userAtDomain,
@@ -30,8 +30,12 @@ class ChatClient {
       host: host,
     );
     _connection = xmpp.Connection(account);
-    _connection.connect();
-
+    // _connection.connect();
+    await _connection.openSocket();
+    if (!_connection.isOpened() ||
+        _connection.state == xmpp.XmppConnectionState.Idle) {
+      return false;
+    }
     _messageHandler = xmpp.MessageHandler.getInstance(_connection);
     xmpp.PresenceManager presenceManager =
         xmpp.PresenceManager.getInstance(_connection);
@@ -41,10 +45,7 @@ class ChatClient {
         presenceManager.acceptSubscription(streamEvent.jid);
       }
     });
-    // _connectionStateChangedListener = ConnectionStateChangedListener(
-    //   _connection,
-    //   _messagesListener,
-    // );
+    return true;
   }
 
   void addMessageListener(Function onMessageReceived) {

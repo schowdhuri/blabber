@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../chatclient/client.dart';
 import '../../models/buddy.dart';
 import '../chat/chat_screen.dart';
 import 'components/add_buddy.dart';
@@ -61,10 +60,7 @@ class BuddyListScreen extends HookWidget {
     handleOpenChat(Buddy buddy) {
       Navigator.of(context).pushNamed(
         "/chat",
-        arguments: ChatScreenArgs(
-          buddy: buddy,
-          chatClient: args.chatClient,
-        ),
+        arguments: ChatScreenArgs(buddy: buddy),
       );
     }
 
@@ -134,10 +130,4 @@ class BuddyListScreen extends HookWidget {
   }
 }
 
-class BuddyListScreenArgs {
-  final ChatClient chatClient;
-
-  const BuddyListScreenArgs({
-    @required this.chatClient,
-  });
-}
+class BuddyListScreenArgs {}

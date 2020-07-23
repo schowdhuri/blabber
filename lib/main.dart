@@ -1,10 +1,19 @@
-import 'package:chat/screens/buddylist/buddy_list_screen.dart';
-import 'package:chat/screens/chat/chat_screen.dart';
-import 'package:chat/screens/login/login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'screens/buddylist/buddy_list_screen.dart';
+import 'screens/chat/chat_screen.dart';
+import 'screens/login/login_screen.dart';
+import 'chatclient/chat_provider.dart';
 
-void main() {
-  runApp(ChatApp());
+void main() async {
+  ChatProvider chatProvider = ChatProvider();
+  await chatProvider.start();
+  runApp(
+    Provider.value(
+      value: chatProvider,
+      child: ChatApp(),
+    ),
+  );
 }
 
 class ChatApp extends StatelessWidget {
