@@ -1,5 +1,7 @@
+import 'package:chat/chatclient/chat_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/buddy.dart';
 import '../chat/chat_screen.dart';
@@ -89,8 +91,15 @@ class BuddyListScreen extends HookWidget {
     }
 
     useEffect(() {
+      ChatProvider chatProvider =
+          Provider.of<ChatProvider>(context, listen: false);
+      Function removeMessageListener = chatProvider.addMessageListener(
+        (String message, {String fromUsername, String toUsername}) {
+          print("[Buddies Page] received $message from $fromUsername");
+        },
+      );
       loadBuddies();
-      return () {};
+      return removeMessageListener;
     }, const []);
 
     return Scaffold(

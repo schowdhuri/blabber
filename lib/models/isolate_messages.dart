@@ -36,9 +36,10 @@ class ConnectResponsePayload {
 }
 
 class ChatMessagePayload {
-  final String username;
+  final String fromUsername;
+  final String toUsername;
   final String message;
-  ChatMessagePayload({this.username, this.message});
+  ChatMessagePayload({this.fromUsername, this.toUsername, this.message});
 }
 
 class IsolateMessage {

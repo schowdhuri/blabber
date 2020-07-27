@@ -16,8 +16,8 @@ https://github.com/schowdhuri/docker-openfire-mariadb
 - [x] Chat screen
 - [x] Isolates
 - [x] Save chat history
-- [ ] Feedback (sound, vibrate)
 - [ ] Push notifications
+- [ ] Feedback (sound, vibrate)
 - [ ] Clear/reset preferences
 - [ ] Buddy approval
 - [ ] Online presence

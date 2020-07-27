@@ -1,36 +1,39 @@
 import 'dart:isolate';
+import 'package:chat/models/buddy.dart';
+import 'package:chat/models/chat_message.dart';
 import 'package:uuid/uuid.dart';
 
+import '../models/chat_history.dart';
 import '../models/connection_settings.dart';
 import '../models/user.dart';
 import '../models/isolate_messages.dart';
 import 'client.dart';
 
 class ChatProvider {
-  Isolate _isolate;
   ReceivePort _receivePort;
   SendPort _sendPort;
   bool _isStarted = false;
-  Function _onReceiveChat;
+  Map<String, MessageCallbackType> _messageCallbacks = {};
   Uuid _uuid = Uuid();
   Map<String, ResponseStatus> _responseMap = {};
+  ChatHistoryProvider _historyProvider = ChatHistoryProvider();
+  BuddyProvider _buddyProvider = BuddyProvider();
 
   ChatProvider._pvtConstructor();
   static final ChatProvider _instance = ChatProvider._pvtConstructor();
   factory ChatProvider() => _instance;
 
-  Future<void> start() async {
+  Future<void> init() async {
     if (_isStarted) {
       return;
     }
     _isStarted = true;
     _receivePort = ReceivePort();
-    _receivePort.listen(onMessage);
-    _isolate = await Isolate.spawn(_run, _receivePort.sendPort);
+    _receivePort.listen(onIsolateMessage);
+    await Isolate.spawn(_run, _receivePort.sendPort);
   }
 
   Future<bool> connect(ConnectionSettings connectionSettings, User user) async {
-    print("starting connect...");
     String key = _uuid.v1();
     _responseMap[key] = ResponseStatus.Pending;
     _sendPort.send(
@@ -49,20 +52,53 @@ class ChatProvider {
     return resp == ResponseStatus.Success;
   }
 
-  void addMessageListener(Function callback) {
-    _onReceiveChat = callback;
+  Function addMessageListener(MessageCallbackType callback) {
+    String uuid = _uuid.v1();
+    _messageCallbacks[uuid] = callback;
+    return () {
+      _messageCallbacks.remove(uuid);
+    };
   }
 
-  void sendMessage(String username, String message) {
+  Future<void> sendMessage(String username, String message) async {
     _sendPort.send(
       IsolateMessage(
         type: MessageType.SendRequest,
         payload: ChatMessagePayload(
-          username: username,
+          toUsername: username,
           message: message,
         ),
       ),
     );
+
+    Buddy buddy = await _buddyProvider.get(username);
+    await _historyProvider.add(
+      buddy,
+      ChatMessage(
+        to: buddy,
+        text: message,
+      ),
+    );
+  }
+
+  Future<void> onReceiveMessage(ChatMessagePayload chatMessagePayload) async {
+    // add to history
+    Buddy buddy = await _buddyProvider.get(chatMessagePayload.fromUsername);
+    await _historyProvider.add(
+      buddy,
+      ChatMessage(
+        to: buddy,
+        text: chatMessagePayload.message,
+      ),
+    );
+    // notify listeners
+    _messageCallbacks.forEach((_, MessageCallbackType cb) {
+      cb(
+        chatMessagePayload.message,
+        fromUsername: chatMessagePayload.fromUsername,
+        toUsername: chatMessagePayload.toUsername,
+      );
+    });
   }
 
   Future<ResponseStatus> _waitForResponse(String key) async {
@@ -72,34 +108,28 @@ class ChatProvider {
     if (_responseMap[key] != ResponseStatus.Pending) {
       return _responseMap[key];
     }
-    print("Response: ${key.toString()} = ${_responseMap[key]}");
     await Future.delayed(Duration(milliseconds: 1000));
     return _waitForResponse(key);
   }
 
-  onMessage(dynamic msg) {
+  onIsolateMessage(dynamic msg) {
     IsolateMessage message = msg as IsolateMessage;
-    print("Isolate says: ${message.type}");
 
     switch (message.type) {
       case MessageType.ShareSendPort:
         _sendPort = message.payload as SendPort;
-        print("_sendport ready");
         break;
 
       case MessageType.ConnectFail:
       case MessageType.ConnectSuccess:
         ConnectResponsePayload resp = message.payload;
         _responseMap[resp.key] = resp.status;
-        print(
-            "Response updated to: ${resp.key.toString()} = ${_responseMap[resp.key]}");
         break;
 
       case MessageType.MessageReceived:
-        if (_onReceiveChat != null) {
-          _onReceiveChat(message.payload as String);
-        }
+        onReceiveMessage(msg.payload as ChatMessagePayload);
         break;
+
       default:
     }
   }
@@ -117,8 +147,6 @@ void _run(SendPort sendPort) {
   );
 
   Future<void> connect(ConnectPayload data) async {
-    print(
-        "connect request received ${data.username}@${data.host}:${data.port}");
     chatClient = ChatClient(
       host: data.host,
       port: data.port,
@@ -147,19 +175,23 @@ void _run(SendPort sendPort) {
         ),
       ),
     );
-    chatClient.addMessageListener((String message) {
-      print("Received message at Isolate: $message");
+    chatClient.addMessageListener((String message,
+        {String fromUsername, String toUsername}) {
       sendPort.send(
         IsolateMessage(
           type: MessageType.MessageReceived,
-          payload: message,
+          payload: ChatMessagePayload(
+            fromUsername: fromUsername,
+            toUsername: toUsername,
+            message: message,
+          ),
         ),
       );
     });
   }
 
   void sendMessage(ChatMessagePayload data) {
-    chatClient.sendMessage(data.username, data.message);
+    chatClient.sendMessage(data.toUsername, data.message);
     sendPort.send(
       IsolateMessage(
         type: MessageType.SendSuccess,

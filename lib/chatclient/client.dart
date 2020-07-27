@@ -3,6 +3,9 @@ import "package:console/console.dart";
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 import 'package:chat/chatclient/message_listener.dart';
 
+typedef void MessageCallbackType(String message,
+    {String fromUsername, String toUsername});
+
 class ChatClient {
   final String userAtDomain;
   final String password;
@@ -48,7 +51,7 @@ class ChatClient {
     return true;
   }
 
-  void addMessageListener(Function onMessageReceived) {
+  void addMessageListener(MessageCallbackType onMessageReceived) {
     _messagesListener = MessagesListener(onMessageReceived);
     _messageHandler.messagesStream.listen(_messagesListener.onNewMessage);
   }

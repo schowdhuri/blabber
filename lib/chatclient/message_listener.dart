@@ -1,7 +1,8 @@
+import 'package:chat/chatclient/client.dart';
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 
 class MessagesListener implements xmpp.MessagesListener {
-  final Function onData;
+  final MessageCallbackType onData;
 
   MessagesListener(this.onData);
 
@@ -10,7 +11,11 @@ class MessagesListener implements xmpp.MessagesListener {
     if (message.body != null) {
       print(
           "New Message from ${message.fromJid.userAtDomain}\nmessage: ${message.body}");
-      onData(message.body);
+      onData(
+        message.body,
+        fromUsername: message.fromJid.userAtDomain,
+        toUsername: message.toJid.userAtDomain,
+      );
     }
   }
 }

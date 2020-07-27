@@ -7,7 +7,9 @@ import 'chatclient/chat_provider.dart';
 
 void main() async {
   ChatProvider chatProvider = ChatProvider();
-  await chatProvider.start();
+  await chatProvider.init();
+  // PushNotificationManager pnm = PushNotificationManager();
+  // pnm.init();
   runApp(
     Provider.value(
       value: chatProvider,

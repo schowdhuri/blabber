@@ -38,12 +38,12 @@ class ChatScreen extends HookWidget {
       }
     }
 
-    useEffect(() {
-      getChatHistory();
-      return () {};
-    }, const []);
-
-    void handleReceive(String message) async {
+    void handleReceive(String message,
+        {String fromUsername, String toUsername}) async {
+      if (fromUsername != args.buddy.username) {
+        return;
+      }
+      print("[Chat Screen] received $message from $fromUsername");
       ChatMessage chatMessage = ChatMessage(
         from: args.buddy,
         text: message,
@@ -59,8 +59,6 @@ class ChatScreen extends HookWidget {
         duration: Duration(milliseconds: 250),
         curve: Curves.linear,
       );
-      ChatHistoryProvider chProvider = ChatHistoryProvider();
-      await chProvider.add(args.buddy, chatMessage);
     }
 
     void handleSend(String message) async {
@@ -78,8 +76,6 @@ class ChatScreen extends HookWidget {
         chatMessage,
       ];
       await scrollToBottom();
-      ChatHistoryProvider chProvider = ChatHistoryProvider();
-      await chProvider.add(args.buddy, chatMessage);
     }
 
     bool isContinued(int index) {
@@ -99,9 +95,13 @@ class ChatScreen extends HookWidget {
     }
 
     useEffect(() {
-      Provider.of<ChatProvider>(context, listen: false)
-          .addMessageListener(handleReceive);
-      return () {};
+      ChatProvider chatProvider =
+          Provider.of<ChatProvider>(context, listen: false);
+      Function removeMessageListener = chatProvider.addMessageListener(
+        handleReceive,
+      );
+      getChatHistory();
+      return removeMessageListener;
     }, const []);
 
     double height = MediaQuery.of(context).size.height;

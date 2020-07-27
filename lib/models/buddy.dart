@@ -23,6 +23,19 @@ class BuddyProvider {
   Storage _storage = Storage();
   final String _tableName = "buddy";
 
+  Future<Buddy> get(String username) async {
+    Database db = await _storage.getDB();
+    List result = await db.query(
+      _tableName,
+      where: "username=?",
+      whereArgs: [username],
+    );
+    if (result.isEmpty) {
+      return null;
+    }
+    return Buddy.fromMap(result[0]);
+  }
+
   Future<List<Buddy>> getAll() async {
     Database db = await _storage.getDB();
     List result = await db.query(_tableName, columns: ["username"]);
