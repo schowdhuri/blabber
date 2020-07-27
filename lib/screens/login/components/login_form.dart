@@ -1,4 +1,5 @@
 import 'package:chat/chatclient/chat_provider.dart';
+import 'package:chat/screens/buddylist/buddy_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:chat/models/connection_settings.dart';
@@ -51,7 +52,10 @@ class LoginForm extends HookWidget {
       );
       if (isConnected) {
         await Future.delayed(Duration(seconds: 1));
-        Navigator.of(context).pushReplacementNamed("/buddylist");
+        Navigator.of(context).pushReplacementNamed(
+          "/buddylist",
+          arguments: BuddyListScreenArgs(),
+        );
       } else {
         isBusy.value = false;
         Scaffold.of(context).showSnackBar(

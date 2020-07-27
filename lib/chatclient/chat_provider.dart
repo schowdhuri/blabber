@@ -70,7 +70,7 @@ class ChatProvider {
         ),
       ),
     );
-
+    // add to history
     Buddy buddy = await _buddyProvider.get(username);
     await _historyProvider.add(
       buddy,
@@ -79,6 +79,15 @@ class ChatProvider {
         text: message,
       ),
     );
+    // notify listeners
+    // notify listeners
+    _messageCallbacks.forEach((_, MessageCallbackType cb) {
+      cb(
+        message,
+        fromUsername: username,
+        isReceived: false,
+      );
+    });
   }
 
   Future<void> onReceiveMessage(ChatMessagePayload chatMessagePayload) async {
@@ -87,7 +96,7 @@ class ChatProvider {
     await _historyProvider.add(
       buddy,
       ChatMessage(
-        to: buddy,
+        from: buddy,
         text: chatMessagePayload.message,
       ),
     );
@@ -97,6 +106,7 @@ class ChatProvider {
         chatMessagePayload.message,
         fromUsername: chatMessagePayload.fromUsername,
         toUsername: chatMessagePayload.toUsername,
+        isReceived: true,
       );
     });
   }
@@ -176,7 +186,7 @@ void _run(SendPort sendPort) {
       ),
     );
     chatClient.addMessageListener((String message,
-        {String fromUsername, String toUsername}) {
+        {String fromUsername, String toUsername, bool isReceived = true}) {
       sendPort.send(
         IsolateMessage(
           type: MessageType.MessageReceived,

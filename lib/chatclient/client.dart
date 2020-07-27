@@ -4,7 +4,7 @@ import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 import 'package:chat/chatclient/message_listener.dart';
 
 typedef void MessageCallbackType(String message,
-    {String fromUsername, String toUsername});
+    {String fromUsername, String toUsername, bool isReceived});
 
 class ChatClient {
   final String userAtDomain;

@@ -19,6 +19,7 @@ class BuddyRowEditable extends HookWidget {
   Widget build(BuildContext context) {
     return CheckboxListTile(
       controlAffinity: ListTileControlAffinity.leading,
+      contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       onChanged: (bool val) {
         onChangeSelection(buddy, val);
       },

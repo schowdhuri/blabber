@@ -10,6 +10,10 @@ class User {
     this.password,
   });
 
+  String get friendlyName {
+    return username.split("@")[0];
+  }
+
   static User fromMap(Map<String, dynamic> data) {
     return User(
       username: data["username"],

@@ -1,23 +1,34 @@
-import 'package:chat/chatclient/chat_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:provider/provider.dart';
 
+import '../../models/chat_message.dart';
 import '../../models/buddy.dart';
 import '../chat/chat_screen.dart';
 import 'components/add_buddy.dart';
-import './components/buddy_row.dart';
-import './components/buddy_row_edit.dart';
+import 'components/buddy_row.dart';
+import 'components/buddy_row_edit.dart';
 
 class BuddyListScreen extends HookWidget {
+  final List<Buddy> buddies;
+  final Map<String, ChatMessage> latestMessage;
   final BuddyListScreenArgs args;
-  const BuddyListScreen({Key key, @required this.args}) : super(key: key);
+  final Function onAddBuddy;
+  final Function onUpdateBuddies;
+
+  const BuddyListScreen({
+    Key key,
+    @required this.args,
+    this.buddies,
+    this.latestMessage,
+    this.onAddBuddy,
+    this.onUpdateBuddies,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    ValueNotifier<List<Buddy>> buddies = useState([]);
     ValueNotifier<bool> isEditMode = useState(false);
     ValueNotifier<List<Buddy>> selectedBuddies = useState([]);
+
     handleAdd(String username) async {
       BuddyProvider buddyProvider = BuddyProvider();
       Buddy buddy = await buddyProvider.add(
@@ -25,11 +36,10 @@ class BuddyListScreen extends HookWidget {
           username: username,
         ),
       );
-      buddies.value = [...buddies.value, buddy];
+      onAddBuddy(buddy);
     }
 
     handleDelete(BuildContext context) => () async {
-          print(selectedBuddies.value);
           BuddyProvider buddyProvider = BuddyProvider();
           List<Future> fArr = selectedBuddies.value
               .map(
@@ -37,11 +47,10 @@ class BuddyListScreen extends HookWidget {
               )
               .toList();
           await Future.wait(fArr);
-          List<Buddy> _buddies = buddies.value;
-          _buddies.removeWhere(
+          buddies.removeWhere(
             (Buddy b) => selectedBuddies.value.indexOf(b) >= 0,
           );
-          buddies.value = _buddies;
+          onUpdateBuddies(buddies);
           Navigator.of(context).pop();
         };
 
@@ -52,11 +61,6 @@ class BuddyListScreen extends HookWidget {
         useSafeArea: true,
         child: AddBuddy(onAdd: handleAdd),
       );
-    }
-
-    loadBuddies() async {
-      BuddyProvider buddyProvider = BuddyProvider();
-      buddies.value = await buddyProvider.getAll();
     }
 
     handleOpenChat(Buddy buddy) {
@@ -90,18 +94,6 @@ class BuddyListScreen extends HookWidget {
       }
     }
 
-    useEffect(() {
-      ChatProvider chatProvider =
-          Provider.of<ChatProvider>(context, listen: false);
-      Function removeMessageListener = chatProvider.addMessageListener(
-        (String message, {String fromUsername, String toUsername}) {
-          print("[Buddies Page] received $message from $fromUsername");
-        },
-      );
-      loadBuddies();
-      return removeMessageListener;
-    }, const []);
-
     return Scaffold(
       appBar: AppBar(
         leading: isEditMode.value ? null : Container(),
@@ -122,18 +114,19 @@ class BuddyListScreen extends HookWidget {
         itemBuilder: (BuildContext context, int index) {
           return isEditMode.value
               ? BuddyRowEditable(
-                  buddy: buddies.value[index],
+                  buddy: buddies[index],
                   onChangeSelection: handleChangeSelection,
                   isSelected:
-                      selectedBuddies.value.indexOf(buddies.value[index]) >= 0)
+                      selectedBuddies.value.indexOf(buddies[index]) >= 0)
               : BuddyRow(
-                  buddy: buddies.value[index],
+                  buddy: buddies[index],
+                  latestMessage: latestMessage[buddies[index].username],
                   onOpenChat: handleOpenChat,
                   onOpenEditMode: handleOpenEditMode,
                 );
         },
         separatorBuilder: (_, __) => Divider(),
-        itemCount: buddies.value.length,
+        itemCount: buddies.length,
       ),
     );
   }

@@ -1,12 +1,12 @@
-import 'package:chat/chatclient/chat_provider.dart';
-import 'package:chat/models/chat_history.dart';
-import 'package:chat/screens/chat/components/chat_bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/chat_history.dart';
+import '../../chatclient/chat_provider.dart';
 import '../../models/buddy.dart';
 import '../../models/chat_message.dart';
+import 'components/chat_bubble.dart';
 import 'components/chat_input.dart';
 
 class ChatScreen extends HookWidget {
@@ -39,11 +39,10 @@ class ChatScreen extends HookWidget {
     }
 
     void handleReceive(String message,
-        {String fromUsername, String toUsername}) async {
-      if (fromUsername != args.buddy.username) {
+        {String fromUsername, String toUsername, bool isReceived}) async {
+      if (!isReceived || fromUsername != args.buddy.username) {
         return;
       }
-      print("[Chat Screen] received $message from $fromUsername");
       ChatMessage chatMessage = ChatMessage(
         from: args.buddy,
         text: message,

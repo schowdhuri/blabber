@@ -15,6 +15,7 @@ class MessagesListener implements xmpp.MessagesListener {
         message.body,
         fromUsername: message.fromJid.userAtDomain,
         toUsername: message.toJid.userAtDomain,
+        isReceived: true,
       );
     }
   }

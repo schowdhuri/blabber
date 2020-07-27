@@ -97,6 +97,16 @@ class ChatHistoryProvider {
     );
   }
 
+  Future<ChatMessage> getLatestMessage(Buddy buddy) async {
+    ChatHistory history = await get(buddy);
+    return ChatMessage(
+      from: history.messages.last.sender == buddy.username ? buddy : null,
+      to: history.messages.last.sender == buddy.username ? null : buddy,
+      timestamp: history.messages.last.timestamp,
+      text: history.messages.last.message,
+    );
+  }
+
   Future<void> add(Buddy buddy, ChatMessage msg) async {
     Database db = await _storage.getDB();
     bool isSent = msg.from == null;
@@ -108,7 +118,6 @@ class ChatHistoryProvider {
         _tableName,
         chatHistory.toMap(),
       );
-      print("chatHistoryId = $chatHistoryId");
     } else {
       chatHistoryId = chatHistory.id;
       await chmProvider.add(
