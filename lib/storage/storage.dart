@@ -45,6 +45,7 @@ class Storage {
             "sender TEXT,"
             "message TEXT NOT NULL,"
             "timestamp DATE NOT NULL,"
+            "is_read INT NOT NULL,"
             "FOREIGN KEY (history_id) REFERENCES chat_history(id)"
             ")",
           ),

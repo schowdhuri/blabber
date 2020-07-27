@@ -77,9 +77,9 @@ class ChatProvider {
       ChatMessage(
         to: buddy,
         text: message,
+        isRead: true,
       ),
     );
-    // notify listeners
     // notify listeners
     _messageCallbacks.forEach((_, MessageCallbackType cb) {
       cb(
@@ -98,6 +98,7 @@ class ChatProvider {
       ChatMessage(
         from: buddy,
         text: chatMessagePayload.message,
+        isRead: false,
       ),
     );
     // notify listeners

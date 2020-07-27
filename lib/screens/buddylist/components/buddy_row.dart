@@ -9,6 +9,7 @@ class BuddyRow extends StatelessWidget {
   final Function onOpenEditMode;
   final Buddy buddy;
   final ChatMessage latestMessage;
+  final int unreadCount;
   final _dateFormat = DateFormat("HH:mm");
 
   BuddyRow({
@@ -17,6 +18,7 @@ class BuddyRow extends StatelessWidget {
     this.onOpenEditMode,
     this.buddy,
     this.latestMessage,
+    this.unreadCount,
   }) : super(key: key);
 
   @override
@@ -46,16 +48,37 @@ class BuddyRow extends StatelessWidget {
                   _dateFormat.format(latestMessage.timestamp),
                   style: TextStyle(
                     color: Colors.blueGrey,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 )
               : Container(),
         ],
       ),
       subtitle: latestMessage != null
-          ? Text(
-              "${latestMessage.from == null ? 'You: ' : ""}${latestMessage.text}",
-              softWrap: false,
+          ? Row(
+              children: [
+                Text(
+                  "${latestMessage.from == null ? 'You: ' : ""}${latestMessage.text}",
+                  softWrap: false,
+                ),
+                Spacer(),
+                unreadCount != null && unreadCount > 0
+                    ? Container(
+                        padding: EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          "$unreadCount",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      )
+                    : Container(),
+              ],
             )
           : Container(),
     );

@@ -43,13 +43,16 @@ class _ChatHistoryMessage {
   final int historyId;
   final String sender;
   final String message;
+  final bool isRead;
   final DateTime timestamp;
+
   _ChatHistoryMessage({
     this.id,
     this.historyId,
     this.sender,
     this.message,
     this.timestamp,
+    this.isRead = false,
   });
 
   static _ChatHistoryMessage fromMap(Map<String, dynamic> data) {
@@ -58,6 +61,7 @@ class _ChatHistoryMessage {
       historyId: data["history_id"],
       sender: data["sender"],
       message: data["message"],
+      isRead: data["is_read"] == 0 ? false : true,
       timestamp: DateTime.parse(data["timestamp"]),
     );
   }
@@ -68,6 +72,7 @@ class _ChatHistoryMessage {
       "history_id": historyId,
       "sender": sender,
       "message": message,
+      "is_read": isRead ? 1 : 0,
       "timestamp": timestamp.toIso8601String(),
     };
   }
@@ -98,13 +103,39 @@ class ChatHistoryProvider {
   }
 
   Future<ChatMessage> getLatestMessage(Buddy buddy) async {
-    ChatHistory history = await get(buddy);
-    return ChatMessage(
-      from: history.messages.last.sender == buddy.username ? buddy : null,
-      to: history.messages.last.sender == buddy.username ? null : buddy,
-      timestamp: history.messages.last.timestamp,
-      text: history.messages.last.message,
+    Database db = await _storage.getDB();
+    List result = await db.query(
+      _tableName,
+      where: "buddy=?",
+      whereArgs: [buddy.username],
     );
+    if (result.length != 1) {
+      return null;
+    }
+    _ChatHistoryMessage _chatHistoryMessage =
+        await chmProvider.getLatest(result[0]["id"]);
+    if (_chatHistoryMessage == null) {
+      return null;
+    }
+    return ChatMessage(
+      from: _chatHistoryMessage.sender == buddy.username ? buddy : null,
+      to: _chatHistoryMessage.sender == buddy.username ? null : buddy,
+      timestamp: _chatHistoryMessage.timestamp,
+      text: _chatHistoryMessage.message,
+    );
+  }
+
+  Future<int> getUnreadCount(Buddy buddy) async {
+    Database db = await _storage.getDB();
+    List result = await db.query(
+      _tableName,
+      where: "buddy=?",
+      whereArgs: [buddy.username],
+    );
+    if (result.length != 1) {
+      return null;
+    }
+    return chmProvider.getUnreadCount(result[0]["id"]);
   }
 
   Future<void> add(Buddy buddy, ChatMessage msg) async {
@@ -126,9 +157,23 @@ class ChatHistoryProvider {
           timestamp: DateTime.now(),
           message: msg.text,
           sender: isSent ? null : msg.from.username,
+          isRead: msg.isRead,
         ),
       );
     }
+  }
+
+  Future<void> markAllRead(Buddy buddy) async {
+    Database db = await _storage.getDB();
+    List result = await db.query(
+      _tableName,
+      where: "buddy=?",
+      whereArgs: [buddy.username],
+    );
+    if (result.length != 1) {
+      return;
+    }
+    await chmProvider.markAllRead(result[0]["id"]);
   }
 }
 
@@ -149,11 +194,42 @@ class _ChatHistoryMessageProvider {
     );
   }
 
+  Future<_ChatHistoryMessage> getLatest(int chatHistoryId) async {
+    Database db = await _storage.getDB();
+    List result = await db.query(
+      _tableName,
+      where: "history_id=?",
+      whereArgs: [chatHistoryId],
+      orderBy: "timestamp desc",
+      limit: 1,
+    );
+    return _ChatHistoryMessage.fromMap(result[0]);
+  }
+
+  Future<int> getUnreadCount(int chatHistoryId) async {
+    Database db = await _storage.getDB();
+    return Sqflite.firstIntValue(
+      await db.rawQuery("SELECT COUNT(*) "
+          "FROM $_tableName "
+          "WHERE is_read=0"),
+    );
+  }
+
   Future<void> add(_ChatHistoryMessage chatHistoryMessage) async {
     Database db = await _storage.getDB();
     await db.insert(
       _tableName,
       chatHistoryMessage.toMap(),
+    );
+  }
+
+  Future<void> markAllRead(int chatHistoryId) async {
+    Database db = await _storage.getDB();
+    await db.update(
+      _tableName,
+      {"is_read": 1},
+      where: "history_id=?",
+      whereArgs: [chatHistoryId],
     );
   }
 }

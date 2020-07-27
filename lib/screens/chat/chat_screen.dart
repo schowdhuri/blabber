@@ -29,6 +29,11 @@ class ChatScreen extends HookWidget {
       );
     }
 
+    Future<void> markAllRead() async {
+      ChatHistoryProvider chProvider = ChatHistoryProvider();
+      await chProvider.markAllRead(args.buddy);
+    }
+
     Future<void> getChatHistory() async {
       ChatHistoryProvider chProvider = ChatHistoryProvider();
       ChatHistory chatHistory = await chProvider.get(args.buddy);
@@ -58,6 +63,7 @@ class ChatScreen extends HookWidget {
         duration: Duration(milliseconds: 250),
         curve: Curves.linear,
       );
+      markAllRead();
     }
 
     void handleSend(String message) async {
@@ -100,6 +106,7 @@ class ChatScreen extends HookWidget {
         handleReceive,
       );
       getChatHistory();
+      markAllRead();
       return removeMessageListener;
     }, const []);
 

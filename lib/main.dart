@@ -1,10 +1,10 @@
-import 'package:chat/screens/chat_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import 'chatclient/chat_provider.dart';
 import 'screens/buddylist/buddy_list_screen.dart';
 import 'screens/chat/chat_screen.dart';
 import 'screens/login/login_screen.dart';
-import 'chatclient/chat_provider.dart';
 
 void main() async {
   ChatProvider chatProvider = ChatProvider();
@@ -31,13 +31,13 @@ class ChatApp extends StatelessWidget {
     if (settings.name == "/buddylist") {
       BuddyListScreenArgs args = settings.arguments;
       return MaterialPageRoute(builder: (BuildContext context) {
-        return ChatWrapper(buddyListScreenArgs: args);
+        return BuddyListScreen(args: args);
       });
     }
     if (settings.name == "/chat") {
       ChatScreenArgs args = settings.arguments;
       return MaterialPageRoute(builder: (BuildContext context) {
-        return ChatWrapper(chatScreenArgs: args);
+        return ChatScreen(args: args);
       });
     }
     return MaterialPageRoute(
