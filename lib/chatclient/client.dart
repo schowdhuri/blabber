@@ -39,6 +39,18 @@ class ChatClient {
         _connection.state == xmpp.XmppConnectionState.Idle) {
       return false;
     }
+    // var vCardManager = xmpp.VCardManager(_connection);
+    // vCardManager
+    //     .getVCardFor(xmpp.Jid.fromFullJid("user2@xmpp1.ddplabs.com"))
+    //     .then((vCard) {
+    //   if (vCard != null) {
+    //     print(
+    //         '--------------------------------->Your info [${vCard.jabberId}]: ' +
+    //             vCard.buildXmlString());
+    //     // print(vCard.getAttribute("phones"));
+    //     print('<---------------------------------Your info');
+    //   }
+    // });
     _messageHandler = xmpp.MessageHandler.getInstance(_connection);
     xmpp.PresenceManager presenceManager =
         xmpp.PresenceManager.getInstance(_connection);
@@ -67,5 +79,11 @@ class ChatClient {
       str = str.substring(0, str.length - 1);
       return str;
     });
+  }
+
+  void sendRawXml(String rawXml) {
+    print("SENDING RAW XML... $rawXml");
+    _connection.write(rawXml);
+    print("======================== DONE ====================");
   }
 }

@@ -90,6 +90,15 @@ class ChatProvider {
     });
   }
 
+  void sendRawXml(String rawXml) {
+    _sendPort.send(
+      IsolateMessage(
+        type: MessageType.SendRawXml,
+        payload: rawXml,
+      ),
+    );
+  }
+
   Future<void> onReceiveMessage(ChatMessagePayload chatMessagePayload) async {
     // add to history
     Buddy buddy = await _buddyProvider.get(chatMessagePayload.fromUsername);
@@ -164,7 +173,6 @@ void _run(SendPort sendPort) {
       userAtDomain: data.username,
       password: data.password,
     );
-
     bool isOpened = await chatClient.connect();
     if (!isOpened) {
       return sendPort.send(
@@ -216,6 +224,8 @@ void _run(SendPort sendPort) {
       connect(message.payload as ConnectPayload);
     } else if (message.type == MessageType.SendRequest) {
       sendMessage(message.payload as ChatMessagePayload);
+    } else if (message.type == MessageType.SendRawXml) {
+      chatClient.sendRawXml(message.payload as String);
     }
   });
 }

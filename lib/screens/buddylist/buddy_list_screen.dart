@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:chat/chatclient/chat_provider.dart';
 import 'package:chat/models/chat_history.dart';
+import 'package:chat/push_notifications/push_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,7 @@ import '../chat/chat_screen.dart';
 import 'components/add_buddy.dart';
 import 'components/buddy_row.dart';
 import 'components/buddy_row_edit.dart';
+import 'components/notification_handler.dart';
 
 class BuddyListScreen extends HookWidget {
   final BuddyListScreenArgs args;
@@ -146,6 +148,46 @@ class BuddyListScreen extends HookWidget {
       });
     }
 
+    handleExperimentalFunction() {
+      String updateRequest = """
+        <iq type="set" id="1001">
+          <query xmlns="jabber:iq:private">
+            <exodus xmlns="exodus:prefs">
+              <defaultnick>Hamlet</defaultnick>
+            </exodus>
+          </query>
+        </iq>
+      """;
+      // String getMyVCard = """
+      // <iq from='stpeter@jabber.org/roundabout'
+      //     id='v1'
+      //     type='get'>
+      //   <vCard xmlns='vcard-temp'/>
+      // </iq>
+      // """;
+      ChatProvider chatProvider =
+          Provider.of<ChatProvider>(context, listen: false);
+      chatProvider.sendRawXml(updateRequest);
+    }
+
+    Future<void> saveDeviceToken() async {
+      String deviceToken =
+          Provider.of<NotificationsProvider>(context, listen: false)
+              .deviceToken;
+      String saveTokenRequest = """
+        <iq type="set" id="save-device-token">
+          <query xmlns="jabber:iq:private">
+            <blabber xmlns="blabber:devicetoken">
+              <devicetoken>$deviceToken</devicetoken>
+            </blabber>
+          </query>
+        </iq>
+      """;
+      ChatProvider chatProvider =
+          Provider.of<ChatProvider>(context, listen: false);
+      chatProvider.sendRawXml(saveTokenRequest);
+    }
+
     useEffect(() {
       ChatProvider chatProvider =
           Provider.of<ChatProvider>(context, listen: false);
@@ -161,11 +203,20 @@ class BuddyListScreen extends HookWidget {
       return timer.cancel;
     }, const []);
 
+    useEffect(() {
+      saveDeviceToken();
+      return () {};
+    }, const []);
+
     return Scaffold(
       appBar: AppBar(
         leading: isEditMode.value ? null : Container(),
         title: Text("Buddies"),
         actions: [
+          IconButton(
+            icon: Icon(Icons.explicit),
+            onPressed: handleExperimentalFunction,
+          ),
           isEditMode.value
               ? IconButton(
                   icon: Icon(Icons.delete),
@@ -174,29 +225,37 @@ class BuddyListScreen extends HookWidget {
               : IconButton(
                   icon: Icon(Icons.add),
                   onPressed: showForm,
-                )
+                ),
         ],
       ),
-      body: ListView.separated(
-        itemBuilder: (BuildContext context, int index) {
-          return isEditMode.value
-              ? BuddyRowEditable(
-                  buddy: buddies.value[index],
-                  onChangeSelection: handleChangeSelection,
-                  isSelected:
-                      selectedBuddies.value.indexOf(buddies.value[index]) >= 0)
-              : BuddyRow(
-                  buddy: buddies.value[index],
-                  latestMessage:
-                      latestMessage.value[buddies.value[index].username],
-                  unreadCount:
-                      unreadCounts.value[buddies.value[index].username],
-                  onOpenChat: handleOpenChat,
-                  onOpenEditMode: handleOpenEditMode,
-                );
-        },
-        separatorBuilder: (_, __) => Divider(),
-        itemCount: buddies.value.length,
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.separated(
+              itemBuilder: (BuildContext context, int index) {
+                return isEditMode.value
+                    ? BuddyRowEditable(
+                        buddy: buddies.value[index],
+                        onChangeSelection: handleChangeSelection,
+                        isSelected: selectedBuddies.value
+                                .indexOf(buddies.value[index]) >=
+                            0)
+                    : BuddyRow(
+                        buddy: buddies.value[index],
+                        latestMessage:
+                            latestMessage.value[buddies.value[index].username],
+                        unreadCount:
+                            unreadCounts.value[buddies.value[index].username],
+                        onOpenChat: handleOpenChat,
+                        onOpenEditMode: handleOpenEditMode,
+                      );
+              },
+              separatorBuilder: (_, __) => Divider(),
+              itemCount: buddies.value.length,
+            ),
+          ),
+          NotificationHandler(),
+        ],
       ),
     );
   }

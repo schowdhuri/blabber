@@ -1,40 +1,40 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:uuid/uuid.dart';
 
-class PushNotificationManager {
-  PushNotificationManager._pvtConstructor();
-  static PushNotificationManager _instance =
-      PushNotificationManager._pvtConstructor();
-  factory PushNotificationManager() => _instance;
+typedef void NotificationListenerType(
+    {String title, String body, dynamic data});
+
+class NotificationsProvider {
+  NotificationsProvider._pvtConstructor();
+  static NotificationsProvider _instance =
+      NotificationsProvider._pvtConstructor();
+  factory NotificationsProvider() => _instance;
+
   FirebaseMessaging _firebaseMessaging;
+  String _deviceToken;
+  Uuid _uuid = Uuid();
+  final Map<String, NotificationListenerType> _listeners = {};
 
-  Future<dynamic> _onMesage(Map<String, dynamic> message,
-      {BuildContext context}) async {
-    if (context == null) {
-      print("Message received: \n"
-          "Title=${message['notification']['title']}\n"
-          "Body=${message['notification']['body']}");
-    }
-    Scaffold.of(context).showSnackBar(
-      SnackBar(
-        content: Column(
-          children: [
-            Text(
-              message['notification']['title'],
-            ),
-            Text(
-              message['notification']['body'],
-            ),
-          ],
-        ),
-      ),
-    );
+  String get deviceToken => _deviceToken;
+
+  Future<dynamic> _onMesage(Map<String, dynamic> message) async {
+    print("Message received: \n"
+        "Title=${message['notification']['title']}\n"
+        "Body=${message['notification']['body']}\n"
+        "Data=${message['data']}");
+    _listeners.forEach((_, NotificationListenerType cb) {
+      cb(
+        title: message["notification"]["title"],
+        body: message["notification"]["body"],
+        data: message["notification"]["data"],
+      );
+    });
   }
 
-  void init({BuildContext context}) {
+  void init() async {
     _firebaseMessaging = FirebaseMessaging();
     _firebaseMessaging.configure(
-      onMessage: (message) => _onMesage(message, context: context),
+      onMessage: (message) => _onMesage(message),
       onLaunch: (Map<String, dynamic> message) async {
         print("onLaunch: $message");
       },
@@ -42,5 +42,14 @@ class PushNotificationManager {
         print("onResume: $message");
       },
     );
+    _deviceToken = await _firebaseMessaging.getToken();
+  }
+
+  Function addListener(NotificationListenerType cb) {
+    String uuid = _uuid.v4();
+    _listeners[uuid] = cb;
+    return () {
+      _listeners.remove(uuid);
+    };
   }
 }

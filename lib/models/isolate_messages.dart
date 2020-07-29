@@ -7,6 +7,9 @@ enum MessageType {
   SendSuccess,
   SendFail,
   ShareSendPort,
+  SendRawXml,
+  SendRawXmlSuccess,
+  SendRawXmlFailure,
 }
 
 class ConnectPayload {
