@@ -19,6 +19,7 @@ https://github.com/schowdhuri/docker-openfire-mariadb
 - [x] Better buddy list
 - [x] Unread count and status
 - [ ] Push notifications
+- [ ] Avatars
 - [ ] Feedback (sound, vibrate)
 - [ ] Clear/reset preferences
 - [ ] Buddy approval

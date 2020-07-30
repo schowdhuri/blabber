@@ -1,8 +1,10 @@
 import 'dart:isolate';
-import 'package:chat/models/buddy.dart';
-import 'package:chat/models/chat_message.dart';
+import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 
+import '../models/buddy.dart';
+import '../models/chat_message.dart';
 import '../models/chat_history.dart';
 import '../models/connection_settings.dart';
 import '../models/user.dart';
@@ -13,9 +15,10 @@ class ChatProvider {
   ReceivePort _receivePort;
   SendPort _sendPort;
   bool _isStarted = false;
+  User _user;
   Map<String, MessageCallbackType> _messageCallbacks = {};
   Uuid _uuid = Uuid();
-  Map<String, ResponseStatus> _responseMap = {};
+  Map<String, ClientResponse> _responseMap = {};
   ChatHistoryProvider _historyProvider = ChatHistoryProvider();
   BuddyProvider _buddyProvider = BuddyProvider();
 
@@ -35,7 +38,7 @@ class ChatProvider {
 
   Future<bool> connect(ConnectionSettings connectionSettings, User user) async {
     String key = _uuid.v1();
-    _responseMap[key] = ResponseStatus.Pending;
+    _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
     _sendPort.send(
       IsolateMessage(
         type: MessageType.ConnectRequest,
@@ -48,8 +51,13 @@ class ChatProvider {
         ),
       ),
     );
-    ResponseStatus resp = await _waitForResponse(key);
-    return resp == ResponseStatus.Success;
+    ClientResponse resp = await _waitForResponse(key);
+    _user = user;
+    return resp.status == ResponseStatus.Success;
+  }
+
+  String getUsername() {
+    return _user != null ? _user.username : null;
   }
 
   Function addMessageListener(MessageCallbackType callback) {
@@ -90,6 +98,48 @@ class ChatProvider {
     });
   }
 
+  Future<User> getProfile() async {
+    String key = _uuid.v1();
+    _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
+    String xml = """
+      <iq from='${_user.username}'
+          id='$key'
+          type='get'>
+        <vCard xmlns='vcard-temp'/>
+      </iq>""";
+    sendRawXml(xml);
+    ClientResponse resp = await _waitForResponse(key);
+    xmpp.VCard vCard = resp.payload as xmpp.VCard;
+    return User(
+      username: vCard.jabberId,
+      avatar: Image.memory(vCard.imageData),
+    );
+  }
+
+  void updateAvatar(String imageData) {
+    String key = _uuid.v1();
+    _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
+    String xml = "<iq from='${_user.username}'"
+        "id='$key' type='set'>"
+        "<vCard xmlns='vcard-temp'>"
+        "<PHOTO>"
+        "<TYPE>image/jpeg</TYPE>"
+        "<BINVAL>$imageData</BINVAL>"
+        "</PHOTO>"
+        "</vCard>"
+        "</iq>";
+
+    _sendPort.send(
+      IsolateMessage(
+        type: MessageType.SaveVCard,
+        payload: SaveVCardPayload(
+          xml: xml,
+          key: key,
+        ),
+      ),
+    );
+  }
+
   void sendRawXml(String rawXml) {
     _sendPort.send(
       IsolateMessage(
@@ -121,11 +171,11 @@ class ChatProvider {
     });
   }
 
-  Future<ResponseStatus> _waitForResponse(String key) async {
+  Future<ClientResponse> _waitForResponse(String key) async {
     if (_responseMap[key] == null) {
       throw AssertionError("Response container not found");
     }
-    if (_responseMap[key] != ResponseStatus.Pending) {
+    if (_responseMap[key].status != ResponseStatus.Pending) {
       return _responseMap[key];
     }
     await Future.delayed(Duration(milliseconds: 1000));
@@ -142,18 +192,34 @@ class ChatProvider {
 
       case MessageType.ConnectFail:
       case MessageType.ConnectSuccess:
-        ConnectResponsePayload resp = message.payload;
-        _responseMap[resp.key] = resp.status;
-        break;
+        {
+          ConnectResponsePayload resp = message.payload;
+          _responseMap[resp.key] = ClientResponse(status: resp.status);
+          break;
+        }
 
       case MessageType.MessageReceived:
         onReceiveMessage(msg.payload as ChatMessagePayload);
         break;
 
+      case MessageType.VCardReceived:
+        {
+          VCardResponsePayload resp = msg.payload;
+          _responseMap[resp.key] = ClientResponse(
+            status: ResponseStatus.Success,
+            payload: resp.vCard,
+          );
+          break;
+        }
+
       default:
     }
   }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void _run(SendPort sendPort) {
   ChatClient chatClient;
@@ -207,6 +273,27 @@ void _run(SendPort sendPort) {
         ),
       );
     });
+    chatClient
+        .addVCardListener((xmpp.VCard vCard, {String key, dynamic error}) {
+      if (error == null) {
+        sendPort.send(
+          IsolateMessage(
+            type: MessageType.VCardReceived,
+            payload: VCardResponsePayload(
+              vCard: vCard,
+              key: key,
+            ),
+          ),
+        );
+      } else {
+        sendPort.send(
+          IsolateMessage(
+            type: MessageType.VCardError,
+            payload: error,
+          ),
+        );
+      }
+    });
   }
 
   void sendMessage(ChatMessagePayload data) {
@@ -220,12 +307,26 @@ void _run(SendPort sendPort) {
 
   _receivePort.listen((msg) {
     IsolateMessage message = msg as IsolateMessage;
-    if (message.type == MessageType.ConnectRequest) {
-      connect(message.payload as ConnectPayload);
-    } else if (message.type == MessageType.SendRequest) {
-      sendMessage(message.payload as ChatMessagePayload);
-    } else if (message.type == MessageType.SendRawXml) {
-      chatClient.sendRawXml(message.payload as String);
+    switch (message.type) {
+      case MessageType.ConnectRequest:
+        connect(message.payload as ConnectPayload);
+        break;
+
+      case MessageType.SendRequest:
+        sendMessage(message.payload as ChatMessagePayload);
+        break;
+
+      case MessageType.SendRawXml:
+        chatClient.sendRawXml(message.payload as String);
+        break;
+
+      case MessageType.SaveVCard:
+        {
+          SaveVCardPayload payload = msg.payload;
+          chatClient.sendRawXml(payload.xml);
+          break;
+        }
+      default:
     }
   });
 }

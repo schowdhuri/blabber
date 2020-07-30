@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:chat/chatclient/chat_provider.dart';
 import 'package:chat/models/chat_history.dart';
 import 'package:chat/push_notifications/push_notifications.dart';
+import 'package:chat/screens/buddylist/components/actions_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
@@ -30,6 +31,7 @@ class BuddyListScreen extends HookWidget {
     ValueNotifier<bool> isEditMode = useState(false);
     ValueNotifier<List<Buddy>> selectedBuddies = useState([]);
     ValueNotifier<Map<String, int>> unreadCounts = useState({});
+    ValueNotifier<Image> avatar = useState();
 
     handleAdd(String username) async {
       BuddyProvider buddyProvider = BuddyProvider();
@@ -96,6 +98,10 @@ class BuddyListScreen extends HookWidget {
       }
     }
 
+    void handleChangeAvatar(Image image) {
+      avatar.value = image;
+    }
+
     Future<void> getLatestMessages() async {
       ChatHistoryProvider historyProvider = new ChatHistoryProvider();
       List<Future<ChatMessage>> fArr =
@@ -148,28 +154,6 @@ class BuddyListScreen extends HookWidget {
       });
     }
 
-    handleExperimentalFunction() {
-      String updateRequest = """
-        <iq type="set" id="1001">
-          <query xmlns="jabber:iq:private">
-            <exodus xmlns="exodus:prefs">
-              <defaultnick>Hamlet</defaultnick>
-            </exodus>
-          </query>
-        </iq>
-      """;
-      // String getMyVCard = """
-      // <iq from='stpeter@jabber.org/roundabout'
-      //     id='v1'
-      //     type='get'>
-      //   <vCard xmlns='vcard-temp'/>
-      // </iq>
-      // """;
-      ChatProvider chatProvider =
-          Provider.of<ChatProvider>(context, listen: false);
-      chatProvider.sendRawXml(updateRequest);
-    }
-
     Future<void> saveDeviceToken() async {
       String deviceToken =
           Provider.of<NotificationsProvider>(context, listen: false)
@@ -210,21 +194,15 @@ class BuddyListScreen extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: isEditMode.value ? null : Container(),
-        title: Text("Buddies"),
+        title: isEditMode.value ? null : Text("Buddies"),
         actions: [
-          IconButton(
-            icon: Icon(Icons.explicit),
-            onPressed: handleExperimentalFunction,
-          ),
           isEditMode.value
               ? IconButton(
                   icon: Icon(Icons.delete),
                   onPressed: handleDelete(context),
                 )
-              : IconButton(
-                  icon: Icon(Icons.add),
-                  onPressed: showForm,
+              : ActionsMenu(
+                  onChangeAvatar: handleChangeAvatar,
                 ),
         ],
       ),
@@ -254,9 +232,22 @@ class BuddyListScreen extends HookWidget {
               itemCount: buddies.value.length,
             ),
           ),
+          avatar.value != null
+              ? SizedBox(
+                  height: 128,
+                  width: 128,
+                  child: avatar.value,
+                )
+              : Container(),
           NotificationHandler(),
         ],
       ),
+      floatingActionButton: isEditMode.value
+          ? null
+          : FloatingActionButton(
+              onPressed: showForm,
+              child: Icon(Icons.add),
+            ),
     );
   }
 }

@@ -1,13 +1,17 @@
-import 'package:chat/storage/storage.dart';
+import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
+
+import '../storage/storage.dart';
 
 class User {
   String username;
   String password;
+  Image avatar;
 
   User({
     this.username,
     this.password,
+    this.avatar,
   });
 
   String get friendlyName {

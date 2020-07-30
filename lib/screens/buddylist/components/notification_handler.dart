@@ -14,18 +14,6 @@ class NotificationHandler extends HookWidget {
         backgroundColor: Colors.blue[100],
         barBlur: 4,
         borderRadius: 8,
-        boxShadows: [
-          BoxShadow(
-            color: Colors.black54,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          )
-        ],
-        icon: Image(
-          image: AssetImage("assets/images/blabber.png"),
-          width: 32,
-          height: 32,
-        ),
         titleText: Text(
           title,
           style: TextStyle(
