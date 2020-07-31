@@ -42,7 +42,7 @@ class BuddyRow extends StatelessWidget {
                 color: Colors.blueGrey,
               )
             : null,
-        radius: 32,
+        radius: 28,
       ),
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
