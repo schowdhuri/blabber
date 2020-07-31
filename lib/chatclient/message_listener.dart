@@ -1,5 +1,5 @@
-import 'package:chat/chatclient/client.dart';
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
+import 'client.dart';
 
 class MessagesListener implements xmpp.MessagesListener {
   final MessageCallbackType onData;

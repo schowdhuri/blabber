@@ -1,5 +1,6 @@
-import 'package:chat/storage/storage.dart';
 import 'package:sqflite/sqflite.dart';
+
+import '../storage/storage.dart';
 
 class ConnectionSettings {
   int id;

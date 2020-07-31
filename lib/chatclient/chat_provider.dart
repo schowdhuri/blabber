@@ -136,6 +136,21 @@ class ChatProvider {
     await _waitForResponse(key);
   }
 
+  Future<void> savePushToken(String pushToken) async {
+    String key = _uuid.v1();
+    _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
+    _sendPort.send(
+      IsolateMessage(
+        type: MessageType.SavePushToken,
+        payload: SavePushTokenPayload(
+          id: key,
+          pushToken: pushToken,
+        ),
+      ),
+    );
+    await _waitForResponse(key);
+  }
+
   void sendRawXml(String rawXml) {
     _sendPort.send(
       IsolateMessage(
@@ -331,8 +346,25 @@ void _run(SendPort sendPort) {
               "</vCard>"
               "</iq>";
           chatClient.sendRawXml(xml);
-          break;
         }
+        break;
+
+      case MessageType.SavePushToken:
+        {
+          SavePushTokenPayload payload = msg.payload;
+          String xml = """
+            <iq type="set" id="${payload.id}">
+              <query xmlns="jabber:iq:private">
+                <blabber xmlns="blabber:devicetoken">
+                  <devicetoken>${payload.pushToken}</devicetoken>
+                </blabber>
+              </query>
+            </iq>
+          """;
+          chatClient.sendRawXml(xml);
+        }
+        break;
+
       default:
     }
   });

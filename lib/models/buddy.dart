@@ -1,6 +1,7 @@
-import 'package:chat/models/user.dart';
-import 'package:chat/storage/storage.dart';
 import 'package:sqflite/sqflite.dart';
+
+import '../storage/storage.dart';
+import 'user.dart';
 
 class Buddy extends User {
   Buddy({String username}) : super(username: username);

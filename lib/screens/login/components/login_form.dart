@@ -1,10 +1,11 @@
-import 'package:chat/chatclient/chat_provider.dart';
-import 'package:chat/screens/buddylist/buddy_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:chat/models/connection_settings.dart';
-import 'package:chat/models/user.dart';
 import 'package:provider/provider.dart';
+
+import '../../../models/connection_settings.dart';
+import '../../../models/user.dart';
+import '../../../chatclient/chat_provider.dart';
+import '../../buddylist/buddy_list_screen.dart';
 
 class LoginForm extends HookWidget {
   @override

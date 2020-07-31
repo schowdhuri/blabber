@@ -1,13 +1,12 @@
 import 'dart:async';
 
-import 'package:chat/chatclient/chat_provider.dart';
-import 'package:chat/models/chat_history.dart';
-import 'package:chat/push_notifications/push_notifications.dart';
-import 'package:chat/screens/buddylist/components/actions_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
+import '../../chatclient/chat_provider.dart';
+import '../../push_notifications/push_notifications.dart';
+import '../../models/chat_history.dart';
 import '../../models/chat_message.dart';
 import '../../models/buddy.dart';
 import '../chat/chat_screen.dart';
@@ -15,14 +14,12 @@ import 'components/add_buddy.dart';
 import 'components/buddy_row.dart';
 import 'components/buddy_row_edit.dart';
 import 'components/notification_handler.dart';
+import 'components/actions_menu.dart';
 
 class BuddyListScreen extends HookWidget {
   final BuddyListScreenArgs args;
 
-  const BuddyListScreen({
-    Key key,
-    @required this.args,
-  }) : super(key: key);
+  const BuddyListScreen({Key key, @required this.args}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +50,6 @@ class BuddyListScreen extends HookWidget {
           buddies.value.removeWhere(
             (Buddy b) => selectedBuddies.value.indexOf(b) >= 0,
           );
-          // onUpdateBuddies(buddies);
           Navigator.of(context).pop();
         };
 
@@ -149,22 +145,13 @@ class BuddyListScreen extends HookWidget {
       });
     }
 
-    Future<void> saveDeviceToken() async {
-      String deviceToken =
+    void saveDeviceToken() {
+      String pushToken =
           Provider.of<NotificationsProvider>(context, listen: false)
               .deviceToken;
-      String saveTokenRequest = """
-        <iq type="set" id="save-device-token">
-          <query xmlns="jabber:iq:private">
-            <blabber xmlns="blabber:devicetoken">
-              <devicetoken>$deviceToken</devicetoken>
-            </blabber>
-          </query>
-        </iq>
-      """;
       ChatProvider chatProvider =
           Provider.of<ChatProvider>(context, listen: false);
-      chatProvider.sendRawXml(saveTokenRequest);
+      chatProvider.savePushToken(pushToken);
     }
 
     useEffect(() {

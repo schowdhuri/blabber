@@ -1,5 +1,6 @@
-import 'package:chat/models/user.dart';
 import 'package:flutter/material.dart';
+
+import '../../../models/user.dart';
 
 class ProfileImage extends StatelessWidget {
   final ValueNotifier<User> user;

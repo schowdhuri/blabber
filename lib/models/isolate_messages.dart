@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 
 enum MessageType {
@@ -23,6 +22,7 @@ enum MessageType {
   SaveVCardFailure,
   VCardReceived,
   VCardError,
+  SavePushToken,
 }
 
 class ConnectPayload {
@@ -79,6 +79,12 @@ class VCardResponsePayload {
   final String key;
 
   VCardResponsePayload({this.vCard, this.key});
+}
+
+class SavePushTokenPayload {
+  final String pushToken;
+  final String id;
+  SavePushTokenPayload({this.pushToken, this.id});
 }
 
 class IsolateMessage {

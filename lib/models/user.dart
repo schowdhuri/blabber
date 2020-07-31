@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:sqflite/sqflite.dart';
 
 import '../storage/storage.dart';
