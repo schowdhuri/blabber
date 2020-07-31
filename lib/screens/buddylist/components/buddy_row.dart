@@ -33,10 +33,15 @@ class BuddyRow extends StatelessWidget {
       contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       leading: CircleAvatar(
         backgroundColor: Colors.grey[200],
-        child: Icon(
-          Icons.person_outline,
-          color: Colors.blueGrey,
-        ),
+        backgroundImage: buddy.imageData != null
+            ? Image.memory(buddy.imageData).image
+            : null,
+        child: buddy.imageData == null
+            ? Icon(
+                Icons.person_outline,
+                color: Colors.blueGrey,
+              )
+            : null,
         radius: 32,
       ),
       title: Row(

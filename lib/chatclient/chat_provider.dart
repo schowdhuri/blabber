@@ -101,17 +101,41 @@ class ChatProvider {
   Future<User> getMyProfile() async {
     String key = _uuid.v1();
     _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
-    String xml = """
-      <iq from='${_user.username}'
-          id='$key'
-          type='get'>
-        <vCard xmlns='vcard-temp'/>
-      </iq>""";
-    sendRawXml(xml);
+    _sendPort.send(
+      IsolateMessage(
+        type: MessageType.GetVCard,
+        payload: GetVCardPayload(
+          id: key,
+          fromUsername: _user.username,
+        ),
+      ),
+    );
     ClientResponse resp = await _waitForResponse(key);
     xmpp.VCard vCard = resp.payload as xmpp.VCard;
     return User(
       username: vCard.jabberId ?? _user.username,
+      name: vCard.fullName,
+      imageData: vCard.imageData,
+    );
+  }
+
+  Future<Buddy> getBuddyProfile(Buddy buddy) async {
+    String key = _uuid.v1();
+    _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
+    _sendPort.send(
+      IsolateMessage(
+        type: MessageType.GetVCard,
+        payload: GetVCardPayload(
+          id: key,
+          fromUsername: _user.username,
+          toUsername: buddy.username,
+        ),
+      ),
+    );
+    ClientResponse resp = await _waitForResponse(key);
+    xmpp.VCard vCard = resp.payload as xmpp.VCard;
+    return Buddy(
+      username: vCard.jabberId ?? buddy.username,
       name: vCard.fullName,
       imageData: vCard.imageData,
     );
@@ -329,6 +353,20 @@ void _run(SendPort sendPort) {
 
       case MessageType.SendRawXml:
         chatClient.sendRawXml(message.payload as String);
+        break;
+
+      case MessageType.GetVCard:
+        {
+          GetVCardPayload payload = msg.payload;
+          String xml = """
+            <iq from='${payload.fromUsername}'
+                id='${payload.id}'
+                ${payload.toUsername != null ? "to='${payload.toUsername}'" : ""}
+                type='get'>
+              <vCard xmlns='vcard-temp'/>
+            </iq>""";
+          chatClient.sendRawXml(xml);
+        }
         break;
 
       case MessageType.SaveVCard:

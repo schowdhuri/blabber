@@ -58,6 +58,13 @@ class ChatMessagePayload {
   ChatMessagePayload({this.fromUsername, this.toUsername, this.message});
 }
 
+class GetVCardPayload {
+  final String fromUsername;
+  final String toUsername;
+  final String id;
+  GetVCardPayload({this.fromUsername, this.toUsername, this.id});
+}
+
 class SaveVCardPayload {
   final String id;
   final Uint8List imageData;

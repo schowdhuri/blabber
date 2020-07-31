@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:chat/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
@@ -109,10 +110,28 @@ class BuddyListScreen extends HookWidget {
       latestMessage.value = _latestMessages;
     }
 
+    Future<void> getBuddyProfiles(List<Buddy> _buddies) async {
+      ChatProvider chatProvider =
+          Provider.of<ChatProvider>(context, listen: false);
+      List<Future<Buddy>> futures =
+          _buddies.map(chatProvider.getBuddyProfile).toList();
+      _buddies = await Future.wait(futures);
+      List<Buddy> __buddies = buddies.value.toList();
+      buddies.value = buddies.value.map((Buddy buddy) {
+        try {
+          Buddy match =
+              _buddies.firstWhere((Buddy b) => buddy.username == b.username);
+          buddy.imageData = match.imageData;
+        } catch (ex0) {}
+        return buddy;
+      }).toList();
+    }
+
     Future<void> loadBuddies() async {
       BuddyProvider buddyProvider = BuddyProvider();
       List<Buddy> _buddies = await buddyProvider.getAll();
       buddies.value = _buddies;
+      getBuddyProfiles(_buddies);
       await getLatestMessages();
     }
 
