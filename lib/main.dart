@@ -7,6 +7,7 @@ import 'push_notifications/push_notifications.dart';
 import 'screens/buddylist/buddy_list_screen.dart';
 import 'screens/chat/chat_screen.dart';
 import 'screens/login/login_screen.dart';
+import 'screens/profile/profile_screen.dart';
 
 void main() async {
   runApp(ChatApp());
@@ -31,6 +32,11 @@ class ChatApp extends HookWidget {
       ChatScreenArgs args = settings.arguments;
       return MaterialPageRoute(builder: (BuildContext context) {
         return ChatScreen(args: args);
+      });
+    }
+    if (settings.name == "/profile") {
+      return MaterialPageRoute(builder: (BuildContext context) {
+        return ProfileScreen();
       });
     }
     return MaterialPageRoute(

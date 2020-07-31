@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'dart:typed_data';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../storage/storage.dart';
@@ -6,16 +7,20 @@ import '../storage/storage.dart';
 class User {
   String username;
   String password;
-  Image avatar;
+  Uint8List imageData;
+  String name;
 
   User({
     this.username,
     this.password,
-    this.avatar,
+    this.imageData,
+    this.name,
   });
 
   String get friendlyName {
-    return username.split("@")[0];
+    return name != null && name.isNotEmpty
+        ? name
+        : username != null ? username.split("@")[0] : "";
   }
 
   static User fromMap(Map<String, dynamic> data) {

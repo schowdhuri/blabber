@@ -1,5 +1,5 @@
 import 'dart:isolate';
-import 'package:flutter/material.dart';
+import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 
@@ -98,7 +98,7 @@ class ChatProvider {
     });
   }
 
-  Future<User> getProfile() async {
+  Future<User> getMyProfile() async {
     String key = _uuid.v1();
     _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
     String xml = """
@@ -111,33 +111,29 @@ class ChatProvider {
     ClientResponse resp = await _waitForResponse(key);
     xmpp.VCard vCard = resp.payload as xmpp.VCard;
     return User(
-      username: vCard.jabberId,
-      avatar: Image.memory(vCard.imageData),
+      username: vCard.jabberId ?? _user.username,
+      name: vCard.fullName,
+      imageData: vCard.imageData,
     );
   }
 
-  void updateAvatar(String imageData) {
+  Future<void> updateProfile(User user,
+      {Uint8List imageData, String name}) async {
     String key = _uuid.v1();
     _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
-    String xml = "<iq from='${_user.username}'"
-        "id='$key' type='set'>"
-        "<vCard xmlns='vcard-temp'>"
-        "<PHOTO>"
-        "<TYPE>image/jpeg</TYPE>"
-        "<BINVAL>$imageData</BINVAL>"
-        "</PHOTO>"
-        "</vCard>"
-        "</iq>";
 
     _sendPort.send(
       IsolateMessage(
         type: MessageType.SaveVCard,
         payload: SaveVCardPayload(
-          xml: xml,
-          key: key,
+          id: key,
+          fullName: name != null && name.isNotEmpty ? name : user.name,
+          imageData: imageData ?? user.imageData,
+          jabberId: user.username,
         ),
       ),
     );
+    await _waitForResponse(key);
   }
 
   void sendRawXml(String rawXml) {
@@ -323,7 +319,18 @@ void _run(SendPort sendPort) {
       case MessageType.SaveVCard:
         {
           SaveVCardPayload payload = msg.payload;
-          chatClient.sendRawXml(payload.xml);
+          String xml = "<iq from='${payload.jabberId}'"
+              "id='${payload.id}' type='set'>"
+              "<vCard xmlns='vcard-temp'>"
+              "<FN>${payload.fullName}</FN>"
+              "<PHOTO>"
+              "<TYPE>image/jpeg</TYPE>"
+              "<BINVAL>${payload.b64ImageData}</BINVAL>"
+              "</PHOTO>"
+              "<JABBERID>${payload.jabberId}</JABBERID>"
+              "</vCard>"
+              "</iq>";
+          chatClient.sendRawXml(xml);
           break;
         }
       default:

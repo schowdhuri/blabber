@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 
 enum MessageType {
@@ -56,13 +59,19 @@ class ChatMessagePayload {
 }
 
 class SaveVCardPayload {
-  final String xml;
-  final String key;
+  final String id;
+  final Uint8List imageData;
+  final String jabberId;
+  final String fullName;
 
   SaveVCardPayload({
-    this.xml,
-    this.key,
+    this.id,
+    this.imageData,
+    this.jabberId,
+    this.fullName,
   });
+
+  String get b64ImageData => base64Encode(imageData);
 }
 
 class VCardResponsePayload {

@@ -31,7 +31,6 @@ class BuddyListScreen extends HookWidget {
     ValueNotifier<bool> isEditMode = useState(false);
     ValueNotifier<List<Buddy>> selectedBuddies = useState([]);
     ValueNotifier<Map<String, int>> unreadCounts = useState({});
-    ValueNotifier<Image> avatar = useState();
 
     handleAdd(String username) async {
       BuddyProvider buddyProvider = BuddyProvider();
@@ -96,10 +95,6 @@ class BuddyListScreen extends HookWidget {
           ...selectedBuddies.value.sublist(index + 1),
         ];
       }
-    }
-
-    void handleChangeAvatar(Image image) {
-      avatar.value = image;
     }
 
     Future<void> getLatestMessages() async {
@@ -201,9 +196,7 @@ class BuddyListScreen extends HookWidget {
                   icon: Icon(Icons.delete),
                   onPressed: handleDelete(context),
                 )
-              : ActionsMenu(
-                  onChangeAvatar: handleChangeAvatar,
-                ),
+              : ActionsMenu(),
         ],
       ),
       body: Column(
@@ -232,13 +225,6 @@ class BuddyListScreen extends HookWidget {
               itemCount: buddies.value.length,
             ),
           ),
-          avatar.value != null
-              ? SizedBox(
-                  height: 128,
-                  width: 128,
-                  child: avatar.value,
-                )
-              : Container(),
           NotificationHandler(),
         ],
       ),
