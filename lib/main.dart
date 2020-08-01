@@ -3,17 +3,30 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
 import 'chatclient/chat_provider.dart';
-import 'push_notifications/push_notifications.dart';
+import 'notifications/notifications.dart';
 import 'screens/buddylist/buddy_list_screen.dart';
 import 'screens/chat/chat_screen.dart';
 import 'screens/login/login_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'store/app_store.dart';
 
 void main() async {
   runApp(ChatApp());
 }
 
 class ChatApp extends HookWidget {
+  final ChatProvider chatProvider = ChatProvider();
+  final NotificationsProvider notificationsProvider = NotificationsProvider();
+
+  Future<void> updateRouteState(
+      Store<AppState, DispatchAction> store, RouteSettings settings) async {
+    await Future.delayed(Duration(milliseconds: 100));
+    store.dispatch(ChangePageAction(
+      settings.name,
+      settings.arguments,
+    ));
+  }
+
   Route<dynamic> onGenerateRoute(RouteSettings settings) {
     if (settings.name == "/") {
       return MaterialPageRoute(
@@ -50,8 +63,10 @@ class ChatApp extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ChatProvider chatProvider = ChatProvider();
-    final NotificationsProvider notificationsProvider = NotificationsProvider();
+    final Store<AppState, DispatchAction> store = useReducer(
+      appReducer,
+      initialState: AppState(),
+    );
 
     useEffect(() {
       chatProvider.init();
@@ -63,9 +78,13 @@ class ChatApp extends HookWidget {
       providers: [
         Provider.value(value: chatProvider),
         Provider.value(value: notificationsProvider),
+        Provider.value(value: store),
       ],
       child: MaterialApp(
-        onGenerateRoute: onGenerateRoute,
+        onGenerateRoute: (RouteSettings routeSettings) {
+          updateRouteState(store, routeSettings);
+          return onGenerateRoute(routeSettings);
+        },
         initialRoute: "/",
       ),
     );

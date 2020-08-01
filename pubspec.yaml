@@ -30,6 +30,7 @@ dependencies:
   intl: ^0.16.1
   uuid: ^2.2.0
   firebase_messaging: ^6.0.16
+  flutter_local_notifications: ^1.4.4+2
   flushbar: ^1.10.4
   image_picker: ^0.6.7+4
   image_cropper: ^1.2.3

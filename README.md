@@ -20,9 +20,9 @@ https://github.com/schowdhuri/docker-openfire-mariadb
 - [x] Unread count and status
 - [x] Edit Profile
 - [x] Buddy avatars
+- [x] Local notifications
+- [ ] Unknown sender approval
 - [ ] Push notifications
-- [ ] Local notifications
 - [ ] Feedback (sound, vibrate)
 - [ ] Clear/reset preferences
 - [ ] Online presence
-- [ ] Buddy approval

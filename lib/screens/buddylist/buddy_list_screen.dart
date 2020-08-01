@@ -1,14 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 
 import '../../chatclient/chat_provider.dart';
-import '../../push_notifications/push_notifications.dart';
+import '../../notifications/notifications.dart';
 import '../../models/chat_history.dart';
 import '../../models/chat_message.dart';
 import '../../models/buddy.dart';
+import '../../store/app_store.dart';
 import '../chat/chat_screen.dart';
 import 'components/add_buddy.dart';
 import 'components/buddy_row.dart';
@@ -134,7 +136,29 @@ class BuddyListScreen extends HookWidget {
       await getLatestMessages();
     }
 
-    handleMessage(String message,
+    void sendLocalNotification(Buddy buddy, String message) {
+      AppState state = Provider.of<Store<AppState, DispatchAction>>(
+        context,
+        listen: false,
+      ).state;
+      if (state.path == "/chat") {
+        ChatScreenArgs args = state.pathArgs;
+        if (args.buddy.username == buddy.username) {
+          return;
+        }
+      }
+      Provider.of<NotificationsProvider>(context, listen: false)
+          .showLocalNotification(
+        title: "${buddy.friendlyName}",
+        body: message,
+        payload: json.encode({
+          "fromUsername": buddy.username,
+          "message": message,
+        }),
+      );
+    }
+
+    Future<void> handleMessage(String message,
         {String fromUsername, String toUsername, bool isReceived}) async {
       BuddyProvider buddyProvider = BuddyProvider();
       Buddy buddy = await buddyProvider.get(fromUsername);
@@ -147,6 +171,9 @@ class BuddyListScreen extends HookWidget {
           text: message,
         ),
       };
+      if (isReceived) {
+        sendLocalNotification(buddy, message);
+      }
     }
 
     Timer getUnreadCounts() {

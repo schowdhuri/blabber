@@ -211,7 +211,8 @@ class _ChatHistoryMessageProvider {
     return Sqflite.firstIntValue(
       await db.rawQuery("SELECT COUNT(*) "
           "FROM $_tableName "
-          "WHERE is_read=0"),
+          "WHERE history_id=$chatHistoryId AND "
+          "is_read=0"),
     );
   }
 
