@@ -107,6 +107,7 @@ class ChatProvider {
         payload: GetVCardPayload(
           id: key,
           fromUsername: _user.username,
+          toUsername: _user.username,
         ),
       ),
     );
@@ -114,7 +115,7 @@ class ChatProvider {
     xmpp.VCard vCard = resp.payload as xmpp.VCard;
     return User(
       username: vCard.jabberId ?? _user.username,
-      name: vCard.fullName,
+      name: vCard.fullName != "null" ? vCard.fullName : null,
       imageData: vCard.imageData,
     );
   }
@@ -136,7 +137,7 @@ class ChatProvider {
     xmpp.VCard vCard = resp.payload as xmpp.VCard;
     return Buddy(
       username: vCard.jabberId ?? buddy.username,
-      name: vCard.fullName,
+      name: vCard.fullName != "null" ? vCard.fullName : null,
       imageData: vCard.imageData,
     );
   }
@@ -361,7 +362,7 @@ void _run(SendPort sendPort) {
           String xml = """
             <iq from='${payload.fromUsername}'
                 id='${payload.id}'
-                ${payload.toUsername != null ? "to='${payload.toUsername}'" : ""}
+                to='${payload.toUsername}'
                 type='get'>
               <vCard xmlns='vcard-temp'/>
             </iq>""";
@@ -377,7 +378,7 @@ void _run(SendPort sendPort) {
               "<vCard xmlns='vcard-temp'>"
               "<FN>${payload.fullName}</FN>"
               "<PHOTO>"
-              "<TYPE>image/jpeg</TYPE>"
+              "<TYPE>image/png</TYPE>"
               "<BINVAL>${payload.b64ImageData}</BINVAL>"
               "</PHOTO>"
               "<JABBERID>${payload.jabberId}</JABBERID>"

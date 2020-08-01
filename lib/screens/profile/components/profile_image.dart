@@ -46,6 +46,21 @@ class ProfileImage extends StatelessWidget {
             shape: CircleBorder(),
           ),
         ),
+        Positioned(
+          left: size.width / 2 - 90,
+          bottom: 0,
+          child: RaisedButton.icon(
+            padding: EdgeInsets.fromLTRB(8, 0, 0, 0),
+            onPressed: () => onChangeAvatar(shouldUseCamera: true),
+            icon: Icon(
+              Icons.camera_alt,
+              color: Colors.blueGrey,
+              size: 20,
+            ),
+            label: Container(),
+            shape: CircleBorder(),
+          ),
+        ),
       ],
     );
   }

@@ -16,6 +16,7 @@ class ProfileStaticView extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        SizedBox(width: 40),
         Text(
           user.friendlyName,
           style: TextStyle(

@@ -66,11 +66,19 @@ class ChatClient {
         if (stanza.type == IqStanzaType.RESULT) {
           var vCardChild = stanza.getChild("vCard");
           if (vCardChild != null) {
-            xmpp.VCard vCard = xmpp.VCard(vCardChild);
-            onVCardReceived(
-              vCard,
-              key: stanza.id,
-            );
+            try {
+              if (vCardChild.getChild("PHOTO")?.getChild("BINVAL") != null) {
+                String b64Image =
+                    vCardChild.getChild("PHOTO").getChild("BINVAL").textValue;
+                vCardChild.getChild("PHOTO").getChild("BINVAL").textValue =
+                    b64Image = b64Image.replaceAll("\n", "");
+              }
+              xmpp.VCard vCard = xmpp.VCard(vCardChild);
+              onVCardReceived(
+                vCard,
+                key: stanza.id,
+              );
+            } catch (ex) {}
           }
         } else if (stanza.type == IqStanzaType.ERROR) {
           onVCardReceived(

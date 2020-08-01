@@ -51,6 +51,16 @@ class ProfileForm extends StatelessWidget {
             ),
             IconButton(
               icon: Icon(
+                Icons.close,
+                color: Colors.red,
+                size: 20,
+              ),
+              onPressed: () {
+                setEditMode(false);
+              },
+            ),
+            IconButton(
+              icon: Icon(
                 Icons.check,
                 color: Colors.green,
                 size: 20,

@@ -30,7 +30,7 @@ class BuddyRow extends StatelessWidget {
       onTap: () {
         onOpenChat(buddy);
       },
-      contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+      contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 10),
       leading: CircleAvatar(
         backgroundColor: Colors.grey[200],
         backgroundImage: buddy.imageData != null

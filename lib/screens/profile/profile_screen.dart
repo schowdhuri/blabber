@@ -21,9 +21,9 @@ class ProfileScreen extends HookWidget {
     ValueNotifier<bool> isNameEditMode = useState(false);
     ValueNotifier<bool> hasProfileLoaded = useState(false);
 
-    Future<File> pickImage() async {
+    Future<File> pickImage({bool shouldUseCamera = false}) async {
       final pickedFile = await _picker.getImage(
-        source: ImageSource.gallery,
+        source: shouldUseCamera ? ImageSource.camera : ImageSource.gallery,
       );
       return File(pickedFile.path);
     }
@@ -49,7 +49,7 @@ class ProfileScreen extends HookWidget {
 
     Future<Uint8List> resizeImage(File file) async {
       Img.Image image = Img.decodeImage(file.readAsBytesSync());
-      return Img.encodeJpg(
+      return Img.encodePng(
         Img.copyResize(image, width: 128),
       );
     }
@@ -61,8 +61,10 @@ class ProfileScreen extends HookWidget {
       hasProfileLoaded.value = true;
     }
 
-    Future<void> handleChangeAvatar() async {
-      Uint8List imageData = await pickImage().then(cropImage).then(resizeImage);
+    Future<void> handleChangeAvatar({bool shouldUseCamera = false}) async {
+      Uint8List imageData = await pickImage(shouldUseCamera: shouldUseCamera)
+          .then(cropImage)
+          .then(resizeImage);
       ChatProvider chatProvider =
           Provider.of<ChatProvider>(context, listen: false);
       chatProvider.updateProfile(user.value, imageData: imageData);
