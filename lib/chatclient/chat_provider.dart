@@ -17,6 +17,7 @@ class ChatProvider {
   bool _isStarted = false;
   User _user;
   Map<String, MessageCallbackType> _messageCallbacks = {};
+  Function _onNewChat;
   Uuid _uuid = Uuid();
   Map<String, ClientResponse> _responseMap = {};
   ChatHistoryProvider _historyProvider = ChatHistoryProvider();
@@ -65,6 +66,13 @@ class ChatProvider {
     _messageCallbacks[uuid] = callback;
     return () {
       _messageCallbacks.remove(uuid);
+    };
+  }
+
+  Function addNewChatListener(Function callback) {
+    _onNewChat = callback;
+    return () {
+      _onNewChat = null;
     };
   }
 
@@ -120,7 +128,10 @@ class ChatProvider {
     );
   }
 
-  Future<Buddy> getBuddyProfile(Buddy buddy) async {
+  Future<Buddy> getBuddyProfile(Buddy buddy) =>
+      getProfileByUsername(buddy.username);
+
+  Future<Buddy> getProfileByUsername(String username) async {
     String key = _uuid.v1();
     _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
     _sendPort.send(
@@ -129,14 +140,14 @@ class ChatProvider {
         payload: GetVCardPayload(
           id: key,
           fromUsername: _user.username,
-          toUsername: buddy.username,
+          toUsername: username,
         ),
       ),
     );
     ClientResponse resp = await _waitForResponse(key);
     xmpp.VCard vCard = resp.payload as xmpp.VCard;
     return Buddy(
-      username: vCard.jabberId ?? buddy.username,
+      username: vCard.jabberId ?? username,
       name: vCard.fullName != "null" ? vCard.fullName : null,
       imageData: vCard.imageData,
     );
@@ -176,18 +187,17 @@ class ChatProvider {
     await _waitForResponse(key);
   }
 
-  void sendRawXml(String rawXml) {
-    _sendPort.send(
-      IsolateMessage(
-        type: MessageType.SendRawXml,
-        payload: rawXml,
-      ),
-    );
-  }
-
   Future<void> onReceiveMessage(ChatMessagePayload chatMessagePayload) async {
     // add to history
     Buddy buddy = await _buddyProvider.get(chatMessagePayload.fromUsername);
+    if (buddy == null && _onNewChat != null) {
+      // message from unknown user
+      _onNewChat(
+        chatMessagePayload.fromUsername,
+        chatMessagePayload.message,
+      );
+      return;
+    }
     await _historyProvider.add(
       buddy,
       ChatMessage(
@@ -350,10 +360,6 @@ void _run(SendPort sendPort) {
 
       case MessageType.SendRequest:
         sendMessage(message.payload as ChatMessagePayload);
-        break;
-
-      case MessageType.SendRawXml:
-        chatClient.sendRawXml(message.payload as String);
         break;
 
       case MessageType.GetVCard:

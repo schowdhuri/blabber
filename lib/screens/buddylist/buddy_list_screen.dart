@@ -158,6 +158,20 @@ class BuddyListScreen extends HookWidget {
       );
     }
 
+    Future<void> handleNewIncomingChat(
+        String fromUsername, String message) async {
+      Provider.of<NotificationsProvider>(context, listen: false)
+          .showLocalNotification(
+        title: "New chat request",
+        body: message,
+        payload: json.encode({
+          "fromUsername": fromUsername,
+          "message": message,
+          "newChat": true,
+        }),
+      );
+    }
+
     Future<void> handleMessage(String message,
         {String fromUsername, String toUsername, bool isReceived}) async {
       BuddyProvider buddyProvider = BuddyProvider();
@@ -199,6 +213,13 @@ class BuddyListScreen extends HookWidget {
       chatProvider.savePushToken(pushToken);
     }
 
+    // Listen for messages from unknown senders
+    useEffect(() {
+      return Provider.of<ChatProvider>(context, listen: false)
+          .addNewChatListener(handleNewIncomingChat);
+    }, const []);
+
+    // Listen for new messages
     useEffect(() {
       ChatProvider chatProvider =
           Provider.of<ChatProvider>(context, listen: false);
@@ -209,11 +230,13 @@ class BuddyListScreen extends HookWidget {
       return removeMessageListener;
     }, const []);
 
+    // Get unread counts
     useEffect(() {
       Timer timer = getUnreadCounts();
       return timer.cancel;
     }, const []);
 
+    // Send pushToken to server
     useEffect(() {
       saveDeviceToken();
       return () {};

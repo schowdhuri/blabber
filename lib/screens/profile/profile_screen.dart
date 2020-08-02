@@ -104,7 +104,7 @@ class ProfileScreen extends HookWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ProfileImage(
-                  user: user,
+                  user: user.value,
                   onChangeAvatar: handleChangeAvatar,
                 ),
                 SizedBox(height: 32),

@@ -1,3 +1,4 @@
+import 'package:chat/screens/new_chat/new_chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
@@ -50,6 +51,12 @@ class ChatApp extends HookWidget {
     if (settings.name == "/profile") {
       return MaterialPageRoute(builder: (BuildContext context) {
         return ProfileScreen();
+      });
+    }
+    if (settings.name == "/newchat") {
+      return MaterialPageRoute(builder: (BuildContext context) {
+        NewChatScreenArgs args = settings.arguments;
+        return NewChatScreen(args: args);
       });
     }
     return MaterialPageRoute(

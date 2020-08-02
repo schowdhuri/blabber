@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import '../../../models/user.dart';
 
 class ProfileStaticView extends StatelessWidget {
-  const ProfileStaticView({
-    Key key,
-    @required this.user,
-    @required this.setEditMode,
-  }) : super(key: key);
-
   final User user;
   final Function setEditMode;
+
+  ProfileStaticView({
+    Key key,
+    @required this.user,
+    this.setEditMode,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(width: 40),
+        setEditMode != null ? SizedBox(width: 40) : Container(),
         Text(
           user.friendlyName,
           style: TextStyle(
@@ -24,16 +24,18 @@ class ProfileStaticView extends StatelessWidget {
             fontSize: 24,
           ),
         ),
-        IconButton(
-          icon: Icon(
-            Icons.edit,
-            color: Colors.black38,
-            size: 20,
-          ),
-          onPressed: () {
-            setEditMode(true);
-          },
-        ),
+        setEditMode != null
+            ? IconButton(
+                icon: Icon(
+                  Icons.edit,
+                  color: Colors.black38,
+                  size: 20,
+                ),
+                onPressed: () {
+                  setEditMode(true);
+                },
+              )
+            : Container(),
       ],
     );
   }
