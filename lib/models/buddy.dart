@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-
+import 'package:chat/models/chat_history.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../storage/storage.dart';
@@ -66,6 +66,10 @@ class BuddyProvider {
   }
 
   Future<void> remove(Buddy buddy) async {
+    // remove chat history
+    ChatHistoryProvider chatHistoryProvider = ChatHistoryProvider();
+    await chatHistoryProvider.clear(buddy);
+    // remove buddy
     Database db = await _storage.getDB();
     await db.delete(
       _tableName,

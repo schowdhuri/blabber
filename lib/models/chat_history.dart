@@ -151,16 +151,16 @@ class ChatHistoryProvider {
       );
     } else {
       chatHistoryId = chatHistory.id;
-      await chmProvider.add(
-        _ChatHistoryMessage(
-          historyId: chatHistoryId,
-          timestamp: DateTime.now(),
-          message: msg.text,
-          sender: isSent ? null : msg.from.username,
-          isRead: msg.isRead,
-        ),
-      );
     }
+    await chmProvider.add(
+      _ChatHistoryMessage(
+        historyId: chatHistoryId,
+        timestamp: DateTime.now(),
+        message: msg.text,
+        sender: isSent ? null : msg.from.username,
+        isRead: msg.isRead,
+      ),
+    );
   }
 
   Future<void> markAllRead(Buddy buddy) async {
@@ -174,6 +174,24 @@ class ChatHistoryProvider {
       return;
     }
     await chmProvider.markAllRead(result[0]["id"]);
+  }
+
+  Future<void> clear(Buddy buddy) async {
+    Database db = await _storage.getDB();
+    List result = await db.query(
+      _tableName,
+      where: "buddy=?",
+      whereArgs: [buddy.username],
+    );
+    if (result.length != 1) {
+      return;
+    }
+    await chmProvider.clear(result[0]["id"]);
+    await db.delete(
+      _tableName,
+      where: "buddy=?",
+      whereArgs: [buddy.username],
+    );
   }
 }
 
@@ -229,6 +247,18 @@ class _ChatHistoryMessageProvider {
     await db.update(
       _tableName,
       {"is_read": 1},
+      where: "history_id=?",
+      whereArgs: [chatHistoryId],
+    );
+  }
+
+  Future<void> clear(int chatHistoryId) async {
+    if (chatHistoryId == null) {
+      return;
+    }
+    Database db = await _storage.getDB();
+    await db.delete(
+      _tableName,
       where: "history_id=?",
       whereArgs: [chatHistoryId],
     );
