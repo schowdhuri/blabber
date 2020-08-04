@@ -52,11 +52,23 @@ AppState appReducer(AppState state, DispatchAction action) {
     case ActionType.AddBuddy:
       {
         AddBuddyAction _action = action;
-        return state.copy()
+        List<ChatMessage> messages = _action.messages ?? [];
+        AppState nextState = state.copy()
           .._buddies = [
             ...state._buddies,
             _action.buddy,
           ];
+        if (messages.isNotEmpty) {
+          nextState._latestMessage = {
+            ...nextState._latestMessage,
+            _action.buddy.username: messages.last,
+          };
+          nextState._unreadCounts = {
+            ...nextState._unreadCounts,
+            _action.buddy.username: messages.length,
+          };
+        }
+        return nextState;
       }
 
     case ActionType.UpdateBuddyProfiles:
@@ -87,9 +99,11 @@ AppState appReducer(AppState state, DispatchAction action) {
       {
         RemoveBuddiesAction _action = action;
         AppState nextState = state.copy();
-        nextState.buddies.removeWhere(
-          (Buddy b) => _action.buddies.indexOf(b) >= 0,
-        );
+        _action.buddies.forEach((Buddy b) {
+          nextState.buddies.remove(b);
+          nextState._latestMessage.remove(b.username);
+          nextState._unreadCounts.remove(b.username);
+        });
         return nextState;
       }
 
@@ -145,7 +159,9 @@ class ChangePageAction extends DispatchAction {
 
 class AddBuddyAction extends DispatchAction {
   final Buddy buddy;
-  AddBuddyAction(this.buddy) : super(ActionType.AddBuddy);
+  final List<ChatMessage> messages;
+  AddBuddyAction(this.buddy, {this.messages = const []})
+      : super(ActionType.AddBuddy);
 }
 
 class UpdateBuddiesAction extends DispatchAction {

@@ -40,7 +40,18 @@ class NewChatScreen extends HookWidget {
       Buddy _buddy = await buddyProvider.add(buddy.value);
       Store<AppState, DispatchAction> store =
           Provider.of<Store<AppState, DispatchAction>>(context, listen: false);
-      store.dispatch(AddBuddyAction(_buddy));
+      store.dispatch(
+        AddBuddyAction(
+          _buddy,
+          messages: [
+            ChatMessage(
+              from: _buddy,
+              isRead: false,
+              text: args.message,
+            ),
+          ],
+        ),
+      );
       await addToHistory(_buddy, args.message);
       Navigator.of(context).pushReplacementNamed(
         "/chat",
