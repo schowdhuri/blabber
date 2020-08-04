@@ -6,6 +6,7 @@ import '../../models/chat_history.dart';
 import '../../models/chat_message.dart';
 import '../../models/buddy.dart';
 import '../../chatclient/chat_provider.dart';
+import '../../store/app_store.dart';
 import '../chat/chat_screen.dart';
 import '../profile/components/profile_image.dart';
 import 'components/action_buttons.dart';
@@ -37,6 +38,9 @@ class NewChatScreen extends HookWidget {
     Future<void> handleAccept() async {
       BuddyProvider buddyProvider = BuddyProvider();
       Buddy _buddy = await buddyProvider.add(buddy.value);
+      Store<AppState, DispatchAction> store =
+          Provider.of<Store<AppState, DispatchAction>>(context, listen: false);
+      store.dispatch(AddBuddyAction(_buddy));
       await addToHistory(_buddy, args.message);
       Navigator.of(context).pushReplacementNamed(
         "/chat",

@@ -49,11 +49,12 @@ class BuddyProvider {
 
   Future<List<Buddy>> getAll() async {
     Database db = await _storage.getDB();
-    List result = await db.query(_tableName, columns: ["username"]);
-    return List<Buddy>.generate(
+    List result = await db.query(_tableName);
+    List<Buddy> buddies = List<Buddy>.generate(
       result.length,
       (index) => Buddy.fromMap(result[index]),
     );
+    return buddies;
   }
 
   Future<Buddy> add(Buddy buddy) async {

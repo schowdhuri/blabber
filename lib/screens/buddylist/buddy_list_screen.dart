@@ -25,11 +25,10 @@ class BuddyListScreen extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    ValueNotifier<List<Buddy>> buddies = useState([]);
-    ValueNotifier<Map<String, ChatMessage>> latestMessage = useState({});
     ValueNotifier<bool> isEditMode = useState(false);
     ValueNotifier<List<Buddy>> selectedBuddies = useState([]);
-    ValueNotifier<Map<String, int>> unreadCounts = useState({});
+    AppState appState =
+        Provider.of<Store<AppState, DispatchAction>>(context).state;
 
     handleAdd(String username) async {
       BuddyProvider buddyProvider = BuddyProvider();
@@ -38,7 +37,8 @@ class BuddyListScreen extends HookWidget {
           username: username,
         ),
       );
-      buddies.value = [...buddies.value, buddy];
+      Provider.of<Store<AppState, DispatchAction>>(context, listen: false)
+          .dispatch(AddBuddyAction(buddy));
     }
 
     handleDelete(BuildContext context) => () async {
@@ -49,9 +49,8 @@ class BuddyListScreen extends HookWidget {
               )
               .toList();
           await Future.wait(fArr);
-          buddies.value.removeWhere(
-            (Buddy b) => selectedBuddies.value.indexOf(b) >= 0,
-          );
+          Provider.of<Store<AppState, DispatchAction>>(context, listen: false)
+              .dispatch(RemoveBuddiesAction(selectedBuddies.value));
           Navigator.of(context).pop();
         };
 
@@ -97,8 +96,10 @@ class BuddyListScreen extends HookWidget {
 
     Future<void> getLatestMessages() async {
       ChatHistoryProvider historyProvider = new ChatHistoryProvider();
+      Store<AppState, DispatchAction> store =
+          Provider.of<Store<AppState, DispatchAction>>(context, listen: false);
       List<Future<ChatMessage>> fArr =
-          buddies.value.map(historyProvider.getLatestMessage).toList();
+          store.state.buddies.map(historyProvider.getLatestMessage).toList();
       List<ChatMessage> _chatMessages = await Future.wait(fArr);
       Map<String, ChatMessage> _latestMessages = {};
       _chatMessages.forEach((ChatMessage _chatMessage) {
@@ -108,31 +109,25 @@ class BuddyListScreen extends HookWidget {
         Buddy _buddy = _chatMessage.from ?? _chatMessage.to;
         _latestMessages[_buddy.username] = _chatMessage;
       });
-      latestMessage.value = _latestMessages;
+      store.dispatch(UpdateLatestMessagesAction(_latestMessages));
     }
 
-    Future<void> getBuddyProfiles(List<Buddy> _buddies) async {
+    Future<List<Buddy>> getBuddyProfiles(List<Buddy> _buddies) async {
       ChatProvider chatProvider =
           Provider.of<ChatProvider>(context, listen: false);
       List<Future<Buddy>> futures =
           _buddies.map(chatProvider.getBuddyProfile).toList();
       _buddies = await Future.wait(futures);
-      buddies.value = buddies.value.map((Buddy buddy) {
-        try {
-          Buddy match =
-              _buddies.firstWhere((Buddy b) => buddy.username == b.username);
-          buddy.imageData = match.imageData;
-          buddy.name = match.name;
-        } catch (ex0) {}
-        return buddy;
-      }).toList();
+      return _buddies;
     }
 
     Future<void> loadBuddies() async {
       BuddyProvider buddyProvider = BuddyProvider();
-      List<Buddy> _buddies = await buddyProvider.getAll();
-      buddies.value = _buddies;
-      getBuddyProfiles(_buddies);
+      List<Buddy> _buddies =
+          await buddyProvider.getAll().then(getBuddyProfiles);
+      Store<AppState, DispatchAction> store =
+          Provider.of<Store<AppState, DispatchAction>>(context, listen: false);
+      store.dispatch(UpdateBuddiesAction(_buddies));
       await getLatestMessages();
     }
 
@@ -176,15 +171,20 @@ class BuddyListScreen extends HookWidget {
         {String fromUsername, String toUsername, bool isReceived}) async {
       BuddyProvider buddyProvider = BuddyProvider();
       Buddy buddy = await buddyProvider.get(fromUsername);
-      latestMessage.value = {
-        ...latestMessage.value,
-        buddy.username: ChatMessage(
-          from: isReceived ? buddy : null,
-          to: isReceived ? null : buddy,
-          timestamp: DateTime.now(),
-          text: message,
+      Store<AppState, DispatchAction> store =
+          Provider.of<Store<AppState, DispatchAction>>(context, listen: false);
+      store.dispatch(
+        UpdateLatestMessageAction(
+          buddy.username,
+          ChatMessage(
+            from: isReceived ? buddy : null,
+            to: isReceived ? null : buddy,
+            timestamp: DateTime.now(),
+            text: message,
+          ),
         ),
-      };
+      );
+
       if (isReceived) {
         sendLocalNotification(buddy, message);
       }
@@ -192,15 +192,18 @@ class BuddyListScreen extends HookWidget {
 
     Timer getUnreadCounts() {
       return Timer.periodic(Duration(seconds: 5), (_) async {
+        Store<AppState, DispatchAction> store =
+            Provider.of<Store<AppState, DispatchAction>>(context,
+                listen: false);
         ChatHistoryProvider historyProvider = new ChatHistoryProvider();
         List<Future<int>> fArr =
-            buddies.value.map(historyProvider.getUnreadCount).toList();
+            store.state.buddies.map(historyProvider.getUnreadCount).toList();
         List<int> counts = await Future.wait(fArr);
         Map<String, int> _unreadCounts = {};
         for (int index = 0; index < counts.length; index++) {
-          _unreadCounts[buddies.value[index].username] = counts[index];
+          _unreadCounts[store.state.buddies[index].username] = counts[index];
         }
-        unreadCounts.value = _unreadCounts;
+        store.dispatch(UpdateUnreadCountsAction(_unreadCounts));
       });
     }
 
@@ -226,8 +229,13 @@ class BuddyListScreen extends HookWidget {
       Function removeMessageListener = chatProvider.addMessageListener(
         handleMessage,
       );
-      loadBuddies();
       return removeMessageListener;
+    }, const []);
+
+    // Load buddy list
+    useEffect(() {
+      loadBuddies();
+      return () {};
     }, const []);
 
     // Get unread counts
@@ -261,23 +269,23 @@ class BuddyListScreen extends HookWidget {
               itemBuilder: (BuildContext context, int index) {
                 return isEditMode.value
                     ? BuddyRowEditable(
-                        buddy: buddies.value[index],
+                        buddy: appState.buddies[index],
                         onChangeSelection: handleChangeSelection,
                         isSelected: selectedBuddies.value
-                                .indexOf(buddies.value[index]) >=
+                                .indexOf(appState.buddies[index]) >=
                             0)
                     : BuddyRow(
-                        buddy: buddies.value[index],
-                        latestMessage:
-                            latestMessage.value[buddies.value[index].username],
-                        unreadCount:
-                            unreadCounts.value[buddies.value[index].username],
+                        buddy: appState.buddies[index],
+                        latestMessage: appState
+                            .latestMessage[appState.buddies[index].username],
+                        unreadCount: appState
+                            .unreadCounts[appState.buddies[index].username],
                         onOpenChat: handleOpenChat,
                         onOpenEditMode: handleOpenEditMode,
                       );
               },
               separatorBuilder: (_, __) => Divider(),
-              itemCount: buddies.value.length,
+              itemCount: appState.buddies.length,
             ),
           ),
           NotificationHandler(),
