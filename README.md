@@ -22,6 +22,7 @@ https://github.com/schowdhuri/docker-openfire-mariadb
 - [x] Buddy avatars
 - [x] Local notifications
 - [x] Unknown sender approval
+- [ ] File transfer
 - [ ] Push notifications
 - [ ] Feedback (sound, vibrate)
 - [ ] Clear/reset preferences

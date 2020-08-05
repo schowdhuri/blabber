@@ -13,11 +13,15 @@ class ChatBubble extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    ValueNotifier<bool> sent = useState(message.from == null);
+    ValueNotifier<bool> isSent = useState(message.from == null);
+    ValueNotifier<bool> isImage = useState(message.text.startsWith("http://") &&
+        message.text.contains("/httpfileupload/"));
+
     double width = MediaQuery.of(context).size.width;
+
     return Row(
       mainAxisAlignment:
-          sent.value ? MainAxisAlignment.end : MainAxisAlignment.start,
+          isSent.value ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         Container(
           constraints: BoxConstraints(
@@ -34,7 +38,7 @@ class ChatBubble extends HookWidget {
             vertical: 12,
             horizontal: 16,
           ),
-          decoration: sent.value
+          decoration: isSent.value
               ? BoxDecoration(
                   color: Colors.green[50],
                   border: Border.all(
@@ -63,13 +67,19 @@ class ChatBubble extends HookWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                message.text,
-                softWrap: true,
-                style: TextStyle(
-                  height: 1.5,
-                ),
-              ),
+              isImage.value
+                  ? Image(
+                      image: NetworkImage(message.text),
+                      height: 128,
+                      width: 128,
+                    )
+                  : Text(
+                      message.text,
+                      softWrap: true,
+                      style: TextStyle(
+                        height: 1.5,
+                      ),
+                    ),
               SizedBox(height: 10),
               Text(
                 _dateFormatter.format(message.timestamp),

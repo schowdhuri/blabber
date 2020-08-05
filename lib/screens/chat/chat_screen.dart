@@ -66,7 +66,7 @@ class ChatScreen extends HookWidget {
       markAllRead();
     }
 
-    void handleSend(String message) async {
+    Future<void> handleSend(String message) async {
       Provider.of<ChatProvider>(context, listen: false).sendMessage(
         args.buddy.username,
         message,
@@ -76,6 +76,25 @@ class ChatScreen extends HookWidget {
         text: message,
         timestamp: DateTime.now(),
       );
+      messages.value = [
+        ...messages.value,
+        chatMessage,
+      ];
+      await scrollToBottom();
+    }
+
+    Future<void> handleUpload(
+        {String filePath, String contentType, int length}) async {
+      ChatMessage chatMessage =
+          await Provider.of<ChatProvider>(context, listen: false).sendFile(
+        args.buddy.username,
+        filePath,
+        contentType,
+        length,
+      );
+      if (chatMessage == null) {
+        return;
+      }
       messages.value = [
         ...messages.value,
         chatMessage,
@@ -134,7 +153,10 @@ class ChatScreen extends HookWidget {
                 },
               ),
             ),
-            ChatInput(onSend: handleSend),
+            ChatInput(
+              onSend: handleSend,
+              onUpload: handleUpload,
+            ),
           ],
         ),
       ),

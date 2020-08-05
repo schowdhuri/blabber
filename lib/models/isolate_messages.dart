@@ -9,7 +9,19 @@ enum MessageType {
   MessageReceived,
   SendRequest,
   SendSuccess,
+  UploadServiceDiscovery,
+  UploadServiceDiscoverySuccess,
+  UploadServiceDiscoveryFailure,
+  GetUploadSlot,
+  GetUploadSlotSuccess,
+  GetUploadSlotFailure,
+  UploadFile,
+  UploadFileSuccess,
+  UploadFileFailure,
   SendFail,
+  SendFile,
+  SendFileSuccess,
+  SendFileFailure,
   ShareSendPort,
   GetVCard,
   GetVCardSuccess,
@@ -49,10 +61,89 @@ class ConnectResponsePayload {
 }
 
 class ChatMessagePayload {
+  final String key;
   final String fromUsername;
   final String toUsername;
   final String message;
-  ChatMessagePayload({this.fromUsername, this.toUsername, this.message});
+  ChatMessagePayload({
+    this.fromUsername,
+    this.toUsername,
+    this.message,
+    this.key,
+  });
+}
+
+class UploadServiceDiscoveryRequest {
+  final String key;
+  final String fromUsername;
+  UploadServiceDiscoveryRequest({this.key, this.fromUsername});
+}
+
+class UploadServiceDiscoveryResponse {
+  final String key;
+  final int maxFileSize;
+  UploadServiceDiscoveryResponse({this.key, this.maxFileSize});
+}
+
+class UploadFileRequest {
+  final String key;
+  final String filePath;
+  final int size;
+  final String url;
+  UploadFileRequest({this.key, this.filePath, this.size, this.url});
+}
+
+class UploadFileResponse {
+  final String key;
+  final String url;
+  UploadFileResponse({this.key, this.url});
+}
+
+class FileMessagePayload extends ChatMessagePayload {
+  final String filename;
+  final String filetype;
+
+  FileMessagePayload({
+    this.filename,
+    this.filetype,
+    String fromUsername,
+    String toUsername,
+    String message,
+    String key,
+  }) : super(
+          fromUsername: fromUsername,
+          toUsername: toUsername,
+          message: message,
+          key: key,
+        );
+}
+
+class UploadSlotRequest {
+  final String key;
+  final String filename;
+  final int size;
+  final String contentType;
+  final String fromUsername;
+
+  UploadSlotRequest({
+    this.key,
+    this.filename,
+    this.size,
+    this.contentType,
+    this.fromUsername,
+  });
+}
+
+class UploadSlotResponse {
+  final String key;
+  final String getUrl;
+  final String putUrl;
+
+  UploadSlotResponse({
+    this.key,
+    this.getUrl,
+    this.putUrl,
+  });
 }
 
 class GetVCardPayload {

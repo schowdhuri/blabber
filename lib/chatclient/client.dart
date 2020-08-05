@@ -25,6 +25,8 @@ class ChatClient {
     this.host,
   });
 
+  String get domain => userAtDomain?.split("@")?.last;
+
   Future<bool> connect() async {
     xmpp.Jid jid = xmpp.Jid.fromFullJid(userAtDomain);
     xmpp.XmppAccountSettings account = xmpp.XmppAccountSettings(
@@ -60,31 +62,95 @@ class ChatClient {
     _messageHandler.messagesStream.listen(_messagesListener.onNewMessage);
   }
 
-  void addVCardListener(Function onVCardReceived) {
+  void _processVCard(IqStanza stanza, Function onVCardReceived) {
+    var vCardChild = stanza.getChild("vCard");
+    if (vCardChild == null) {
+      return;
+    }
+    try {
+      if (vCardChild.getChild("PHOTO")?.getChild("BINVAL") != null) {
+        String b64Image =
+            vCardChild.getChild("PHOTO").getChild("BINVAL").textValue;
+        vCardChild.getChild("PHOTO").getChild("BINVAL").textValue =
+            b64Image = b64Image.replaceAll("\n", "");
+      }
+      xmpp.VCard vCard = xmpp.VCard(vCardChild);
+      onVCardReceived(
+        vCard,
+        key: stanza.id,
+      );
+    } catch (ex) {
+      onVCardReceived(
+        null,
+        error: xmpp.InvalidVCard(vCardChild),
+      );
+    }
+  }
+
+  void _processFileUpload(IqStanza stanza, Function onFileUploadResponse) {
+    // https://xmpp.org/extensions/xep-0363.html
+
+    String key = stanza.id;
+    var query = stanza.getChild("query");
+    if (query != null) {
+      var x = query.getChild("x");
+      if (x != null) {
+        // max-file-size
+        try {
+          var field = x.children.firstWhere(
+              (f) => f.getAttribute("var").value == "max-file-size");
+          if (field == null) {
+            return;
+          }
+          var value = field.getChild("value");
+          if (value == null) {
+            return;
+          }
+          onFileUploadResponse(
+            key: key,
+            maxFileSize: int.parse(value.textValue),
+          );
+          return;
+        } catch (ex0) {
+          print(ex0);
+        }
+      }
+    }
+    // upload slot
+    var slot = stanza.getChild("slot");
+    if (slot == null) {
+      return;
+    }
+    String getUrl = slot
+        .getChild("get")
+        ?.getAttribute("url")
+        ?.value
+        ?.replaceAll(domain, host)
+        ?.replaceAll("7443", "7070");
+    String putUrl = slot
+        .getChild("put")
+        ?.getAttribute("url")
+        ?.value
+        ?.replaceAll(domain, host)
+        ?.replaceAll("7443", "7070");
+    if (getUrl == null || putUrl == null) {
+      return;
+    }
+    onFileUploadResponse(
+      key: key,
+      getUrl: getUrl,
+      putUrl: putUrl,
+    );
+  }
+
+  void addIQListener(Function onVCardReceived, Function onFileUploadResponse) {
     _connection.inStanzasStream.listen((AbstractStanza stanza) {
       if (stanza is IqStanza) {
         if (stanza.type == IqStanzaType.RESULT) {
-          var vCardChild = stanza.getChild("vCard");
-          if (vCardChild != null) {
-            try {
-              if (vCardChild.getChild("PHOTO")?.getChild("BINVAL") != null) {
-                String b64Image =
-                    vCardChild.getChild("PHOTO").getChild("BINVAL").textValue;
-                vCardChild.getChild("PHOTO").getChild("BINVAL").textValue =
-                    b64Image = b64Image.replaceAll("\n", "");
-              }
-              xmpp.VCard vCard = xmpp.VCard(vCardChild);
-              onVCardReceived(
-                vCard,
-                key: stanza.id,
-              );
-            } catch (ex) {}
-          }
+          _processVCard(stanza, onVCardReceived);
+          _processFileUpload(stanza, onFileUploadResponse);
         } else if (stanza.type == IqStanzaType.ERROR) {
-          onVCardReceived(
-            null,
-            error: xmpp.InvalidVCard(stanza.getChild("vCard")),
-          );
+          // TODO: process error?
         }
       }
     });

@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
 import 'package:xmpp_stone/xmpp_stone.dart' as xmpp;
 
 import '../models/buddy.dart';
@@ -22,6 +24,7 @@ class ChatProvider {
   Map<String, ClientResponse> _responseMap = {};
   ChatHistoryProvider _historyProvider = ChatHistoryProvider();
   BuddyProvider _buddyProvider = BuddyProvider();
+  int _maxFileSize;
 
   ChatProvider._pvtConstructor();
   static final ChatProvider _instance = ChatProvider._pvtConstructor();
@@ -104,6 +107,91 @@ class ChatProvider {
         isReceived: false,
       );
     });
+  }
+
+  Future<ChatMessage> sendFile(
+      String username, String filePath, String contentType, int size) async {
+    if (_maxFileSize == null) {
+      // Get Max File Size
+      String key = _uuid.v1();
+      _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
+      _sendPort.send(
+        IsolateMessage(
+          type: MessageType.UploadServiceDiscovery,
+          payload: UploadServiceDiscoveryRequest(
+            key: key,
+            fromUsername: _user.username,
+          ),
+        ),
+      );
+      ClientResponse resp = await _waitForResponse(key);
+      UploadServiceDiscoveryResponse uploadResp1 = resp.payload;
+      print("MAX FILE SIZE = ${uploadResp1.maxFileSize}");
+      _maxFileSize = uploadResp1.maxFileSize;
+    }
+    if (size >= _maxFileSize) {
+      print("File too large");
+      return null;
+    }
+    String fileName = filePath.split("/").last;
+
+    // Get Upload Slot
+    String key = _uuid.v1();
+    _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
+    _sendPort.send(
+      IsolateMessage(
+        type: MessageType.GetUploadSlot,
+        payload: UploadSlotRequest(
+          key: key,
+          filename: fileName,
+          size: size,
+          contentType: contentType,
+          fromUsername: _user.username,
+        ),
+      ),
+    );
+    ClientResponse resp1 = await _waitForResponse(key);
+    UploadSlotResponse uploadResp2 = resp1.payload;
+    print(uploadResp2.getUrl);
+
+    // Upload the file
+    key = _uuid.v1();
+    _responseMap[key] = ClientResponse(status: ResponseStatus.Pending);
+    _sendPort.send(
+      IsolateMessage(
+        type: MessageType.UploadFile,
+        payload: UploadFileRequest(
+          key: key,
+          filePath: filePath,
+          size: size,
+          url: uploadResp2.putUrl,
+        ),
+      ),
+    );
+    ClientResponse resp2 = await _waitForResponse(key);
+    UploadFileResponse uploadResp3 = resp2.payload;
+
+    // add to history
+    Buddy buddy = await _buddyProvider.get(username);
+    ChatMessage chatMessage = ChatMessage(
+      to: buddy,
+      text: uploadResp3.url,
+      isRead: true,
+    );
+    await _historyProvider.add(
+      buddy,
+      chatMessage,
+    );
+    // notify listeners
+    _messageCallbacks.forEach((_, MessageCallbackType cb) {
+      cb(
+        uploadResp3.url,
+        fromUsername: username,
+        isReceived: false,
+      );
+    });
+
+    return chatMessage;
   }
 
   Future<User> getMyProfile() async {
@@ -241,8 +329,8 @@ class ChatProvider {
         {
           ConnectResponsePayload resp = message.payload;
           _responseMap[resp.key] = ClientResponse(status: resp.status);
-          break;
         }
+        break;
 
       case MessageType.MessageReceived:
         onReceiveMessage(msg.payload as ChatMessagePayload);
@@ -255,8 +343,38 @@ class ChatProvider {
             status: ResponseStatus.Success,
             payload: resp.vCard,
           );
-          break;
         }
+        break;
+
+      case MessageType.UploadServiceDiscoverySuccess:
+        {
+          UploadServiceDiscoveryResponse resp = msg.payload;
+          _responseMap[resp.key] = ClientResponse(
+            status: ResponseStatus.Success,
+            payload: resp,
+          );
+        }
+        break;
+
+      case MessageType.GetUploadSlotSuccess:
+        {
+          UploadSlotResponse resp = msg.payload;
+          _responseMap[resp.key] = ClientResponse(
+            status: ResponseStatus.Success,
+            payload: resp,
+          );
+        }
+        break;
+
+      case MessageType.UploadFileSuccess:
+        {
+          UploadFileResponse resp = msg.payload;
+          _responseMap[resp.key] = ClientResponse(
+            status: ResponseStatus.Success,
+            payload: resp,
+          );
+        }
+        break;
 
       default:
     }
@@ -277,6 +395,54 @@ void _run(SendPort sendPort) {
       payload: _receivePort.sendPort,
     ),
   );
+
+  void _handleVCardResponse(xmpp.VCard vCard, {String key, dynamic error}) {
+    if (error == null) {
+      sendPort.send(
+        IsolateMessage(
+          type: MessageType.VCardReceived,
+          payload: VCardResponsePayload(
+            vCard: vCard,
+            key: key,
+          ),
+        ),
+      );
+    } else {
+      sendPort.send(
+        IsolateMessage(
+          type: MessageType.VCardError,
+          payload: error,
+        ),
+      );
+    }
+  }
+
+  void _handleFileUploadResponse(
+      {String key, int maxFileSize, String getUrl, String putUrl}) {
+    if (maxFileSize != null) {
+      return sendPort.send(
+        IsolateMessage(
+          type: MessageType.UploadServiceDiscoverySuccess,
+          payload: UploadServiceDiscoveryResponse(
+            key: key,
+            maxFileSize: maxFileSize,
+          ),
+        ),
+      );
+    }
+    if (getUrl != null && putUrl != null) {
+      return sendPort.send(
+        IsolateMessage(
+          type: MessageType.GetUploadSlotSuccess,
+          payload: UploadSlotResponse(
+            key: key,
+            getUrl: getUrl,
+            putUrl: putUrl,
+          ),
+        ),
+      );
+    }
+  }
 
   Future<void> connect(ConnectPayload data) async {
     chatClient = ChatClient(
@@ -319,27 +485,7 @@ void _run(SendPort sendPort) {
         ),
       );
     });
-    chatClient
-        .addVCardListener((xmpp.VCard vCard, {String key, dynamic error}) {
-      if (error == null) {
-        sendPort.send(
-          IsolateMessage(
-            type: MessageType.VCardReceived,
-            payload: VCardResponsePayload(
-              vCard: vCard,
-              key: key,
-            ),
-          ),
-        );
-      } else {
-        sendPort.send(
-          IsolateMessage(
-            type: MessageType.VCardError,
-            payload: error,
-          ),
-        );
-      }
-    });
+    chatClient.addIQListener(_handleVCardResponse, _handleFileUploadResponse);
   }
 
   void sendMessage(ChatMessagePayload data) {
@@ -347,6 +493,29 @@ void _run(SendPort sendPort) {
     sendPort.send(
       IsolateMessage(
         type: MessageType.SendSuccess,
+      ),
+    );
+  }
+
+  Future<void> uploadFile(UploadFileRequest payload) async {
+    try {
+      var bytes = await File(payload.filePath).readAsBytes();
+      await http.put(payload.url, body: bytes);
+      return sendPort.send(
+        IsolateMessage(
+          type: MessageType.UploadFileSuccess,
+          payload: UploadFileResponse(
+            key: payload.key,
+            url: payload.url,
+          ),
+        ),
+      );
+    } catch (ex) {
+      print(ex);
+    }
+    sendPort.send(
+      IsolateMessage(
+        type: MessageType.UploadFileFailure,
       ),
     );
   }
@@ -360,6 +529,43 @@ void _run(SendPort sendPort) {
 
       case MessageType.SendRequest:
         sendMessage(message.payload as ChatMessagePayload);
+        break;
+
+      case MessageType.UploadServiceDiscovery:
+        {
+          UploadServiceDiscoveryRequest payload = message.payload;
+          String xml = """
+            <iq from='${payload.fromUsername}'
+                id='${payload.key}'
+                to='httpfileupload.${payload.fromUsername.split("@")[1]}'
+                type='get'>
+              <query xmlns='http://jabber.org/protocol/disco#info'/>
+            </iq>""";
+          chatClient.sendRawXml(xml);
+        }
+        break;
+
+      case MessageType.GetUploadSlot:
+        {
+          UploadSlotRequest payload = message.payload;
+          String xml = """
+            <iq from='${payload.fromUsername}'
+                id='${payload.key}'
+                to='httpfileupload.${payload.fromUsername.split("@")[1]}'
+                type='get'>
+              <request xmlns='urn:xmpp:http:upload:0'
+                filename='${payload.filename}'
+                size='${payload.size}'
+                content-type='${payload.contentType}' />
+            </iq>""";
+          chatClient.sendRawXml(xml);
+        }
+        break;
+
+      case MessageType.UploadFile:
+        {
+          uploadFile(message.payload);
+        }
         break;
 
       case MessageType.GetVCard:
