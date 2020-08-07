@@ -23,8 +23,8 @@ class ChatScreen extends HookWidget {
     Future<void> scrollToBottom() async {
       await Future.delayed(Duration(milliseconds: 250));
       scrollController.value.animateTo(
-        scrollController.value.position.maxScrollExtent,
-        duration: Duration(milliseconds: 250),
+        0,
+        duration: Duration(milliseconds: 100),
         curve: Curves.linear,
       );
     }
@@ -39,7 +39,6 @@ class ChatScreen extends HookWidget {
       ChatHistory chatHistory = await chProvider.get(args.buddy);
       if (chatHistory != null) {
         messages.value = chatHistory.getChatMessages(args.buddy);
-        await scrollToBottom();
       }
     }
 
@@ -57,12 +56,7 @@ class ChatScreen extends HookWidget {
         ...messages.value,
         chatMessage,
       ];
-      await Future.delayed(Duration(milliseconds: 500));
-      scrollController.value.animateTo(
-        scrollController.value.position.maxScrollExtent,
-        duration: Duration(milliseconds: 250),
-        curve: Curves.linear,
-      );
+      scrollToBottom();
       markAllRead();
     }
 
@@ -80,7 +74,6 @@ class ChatScreen extends HookWidget {
         ...messages.value,
         chatMessage,
       ];
-      await scrollToBottom();
     }
 
     Future<void> handleUpload(
@@ -99,7 +92,6 @@ class ChatScreen extends HookWidget {
         ...messages.value,
         chatMessage,
       ];
-      await scrollToBottom();
     }
 
     bool isContinued(int index) {
@@ -145,10 +137,12 @@ class ChatScreen extends HookWidget {
               child: ListView.builder(
                 controller: scrollController.value,
                 itemCount: messages.value.length,
+                reverse: true,
+                shrinkWrap: true,
                 itemBuilder: (BuildContext _, int index) {
                   return ChatBubble(
-                    messages.value[index],
-                    isContinued: isContinued(index),
+                    messages.value[messages.value.length - index - 1],
+                    isContinued: isContinued(messages.value.length - index - 1),
                   );
                 },
               ),
