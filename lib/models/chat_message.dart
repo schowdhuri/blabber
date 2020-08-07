@@ -7,6 +7,10 @@ class ChatMessage {
   final bool isRead;
   DateTime timestamp;
 
+  // TODO: need better image detection:
+  bool get isImage =>
+      text.startsWith("http://") && text.contains("/httpfileupload/");
+
   ChatMessage({
     this.from,
     this.to,

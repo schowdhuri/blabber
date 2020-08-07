@@ -79,7 +79,7 @@ class ChatProvider {
     };
   }
 
-  Future<void> sendMessage(String username, String message) async {
+  Future<ChatMessage> sendMessage(String username, String message) async {
     _sendPort.send(
       IsolateMessage(
         type: MessageType.SendRequest,
@@ -91,13 +91,14 @@ class ChatProvider {
     );
     // add to history
     Buddy buddy = await _buddyProvider.get(username);
+    ChatMessage chatMessage = ChatMessage(
+      to: buddy,
+      text: message,
+      isRead: true,
+    );
     await _historyProvider.add(
       buddy,
-      ChatMessage(
-        to: buddy,
-        text: message,
-        isRead: true,
-      ),
+      chatMessage,
     );
     // notify listeners
     _messageCallbacks.forEach((_, MessageCallbackType cb) {
@@ -107,6 +108,8 @@ class ChatProvider {
         isReceived: false,
       );
     });
+
+    return chatMessage;
   }
 
   Future<ChatMessage> sendFile(
@@ -171,27 +174,8 @@ class ChatProvider {
     ClientResponse resp2 = await _waitForResponse(key);
     UploadFileResponse uploadResp3 = resp2.payload;
 
-    // add to history
-    Buddy buddy = await _buddyProvider.get(username);
-    ChatMessage chatMessage = ChatMessage(
-      to: buddy,
-      text: uploadResp3.url,
-      isRead: true,
-    );
-    await _historyProvider.add(
-      buddy,
-      chatMessage,
-    );
-    // notify listeners
-    _messageCallbacks.forEach((_, MessageCallbackType cb) {
-      cb(
-        uploadResp3.url,
-        fromUsername: username,
-        isReceived: false,
-      );
-    });
-
-    return chatMessage;
+    // Send the URL as a message
+    return sendMessage(username, uploadResp3.url);
   }
 
   Future<User> getMyProfile() async {

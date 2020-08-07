@@ -21,8 +21,35 @@ class BuddyRow extends StatelessWidget {
     this.unreadCount,
   }) : super(key: key);
 
+  Widget getLatestMessage() {
+    String sender = "";
+    if (latestMessage.from == null) {
+      sender = "You: ";
+    }
+    if (latestMessage.isImage) {
+      return Row(
+        children: [
+          Text(sender),
+          Icon(
+            Icons.image,
+            size: 14,
+            color: Colors.blueGrey,
+          ),
+          SizedBox(width: 5),
+          Text("Photo"),
+        ],
+      );
+    }
+    return Text(
+      "$sender${latestMessage.text}",
+      overflow: TextOverflow.fade,
+      softWrap: false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
     return ListTile(
       onLongPress: () {
         onOpenEditMode([buddy]);
@@ -62,9 +89,9 @@ class BuddyRow extends StatelessWidget {
       subtitle: latestMessage != null
           ? Row(
               children: [
-                Text(
-                  "${latestMessage.from == null ? 'You: ' : ""}${latestMessage.text}",
-                  softWrap: false,
+                SizedBox(
+                  width: width * 0.6,
+                  child: getLatestMessage(),
                 ),
                 Spacer(),
                 unreadCount != null && unreadCount > 0

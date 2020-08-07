@@ -1,3 +1,4 @@
+import 'package:chat/screens/chat/image_viewer_screen.dart';
 import 'package:chat/screens/new_chat/new_chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -46,6 +47,12 @@ class ChatApp extends HookWidget {
       ChatScreenArgs args = settings.arguments;
       return MaterialPageRoute(builder: (BuildContext context) {
         return ChatScreen(args: args);
+      });
+    }
+    if (settings.name == "/chat/image_viewer") {
+      ImageViewerScreenArgs args = settings.arguments;
+      return MaterialPageRoute(builder: (BuildContext context) {
+        return ImageViewerScreen(args: args);
       });
     }
     if (settings.name == "/profile") {
