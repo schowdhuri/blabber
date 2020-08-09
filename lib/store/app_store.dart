@@ -1,43 +1,10 @@
-import 'package:chat/models/buddy.dart';
-import 'package:chat/models/chat_message.dart';
+library blabber_app_store;
 
-class AppState {
-  String _path;
-  dynamic _pathArgs;
-  List<Buddy> _buddies;
-  Map<String, ChatMessage> _latestMessage;
-  Map<String, int> _unreadCounts;
+import '../models/buddy.dart';
+import '../models/chat_message.dart';
 
-  String get path => _path;
-  dynamic get pathArgs => _pathArgs;
-  List<Buddy> get buddies => _buddies ?? [];
-  Map<String, ChatMessage> get latestMessage => _latestMessage ?? {};
-  Map<String, int> get unreadCounts => _unreadCounts ?? {};
-
-  AppState({
-    String path,
-    dynamic pathArgs,
-    List<Buddy> buddies,
-    Map<String, ChatMessage> latestMessage,
-    Map<String, int> unreadCounts,
-  }) {
-    _path = path;
-    _pathArgs = pathArgs;
-    _buddies = buddies;
-    _latestMessage = latestMessage;
-    _unreadCounts = unreadCounts;
-  }
-
-  AppState copy() {
-    return AppState(
-      path: _path,
-      pathArgs: _pathArgs,
-      buddies: _buddies,
-      latestMessage: _latestMessage,
-      unreadCounts: _unreadCounts,
-    );
-  }
-}
+part 'actions.dart';
+part 'app_state.dart';
 
 AppState appReducer(AppState state, DispatchAction action) {
   switch (action?.type) {
@@ -133,62 +100,4 @@ AppState appReducer(AppState state, DispatchAction action) {
     default:
       return state;
   }
-}
-
-enum ActionType {
-  ChangePage,
-  AddBuddy,
-  UpdateBuddyProfiles,
-  UpdateBuddies,
-  RemoveBuddies,
-  UpdateUnreadCounts,
-  UpdateLatestMessage,
-  UpdateLatestMessages,
-}
-
-abstract class DispatchAction {
-  ActionType type;
-  DispatchAction(this.type);
-}
-
-class ChangePageAction extends DispatchAction {
-  final String path;
-  final dynamic arguments;
-  ChangePageAction(this.path, this.arguments) : super(ActionType.ChangePage);
-}
-
-class AddBuddyAction extends DispatchAction {
-  final Buddy buddy;
-  final List<ChatMessage> messages;
-  AddBuddyAction(this.buddy, {this.messages = const []})
-      : super(ActionType.AddBuddy);
-}
-
-class UpdateBuddiesAction extends DispatchAction {
-  final List<Buddy> buddies;
-  UpdateBuddiesAction(this.buddies) : super(ActionType.UpdateBuddies);
-}
-
-class RemoveBuddiesAction extends DispatchAction {
-  final List<Buddy> buddies;
-  RemoveBuddiesAction(this.buddies) : super(ActionType.RemoveBuddies);
-}
-
-class UpdateUnreadCountsAction extends DispatchAction {
-  final Map<String, int> values;
-  UpdateUnreadCountsAction(this.values) : super(ActionType.UpdateUnreadCounts);
-}
-
-class UpdateLatestMessageAction extends DispatchAction {
-  final String username;
-  final ChatMessage chatMessage;
-
-  UpdateLatestMessageAction(this.username, this.chatMessage)
-      : super(ActionType.UpdateLatestMessage);
-}
-
-class UpdateLatestMessagesAction extends DispatchAction {
-  final Map<String, ChatMessage> values;
-  UpdateLatestMessagesAction(this.values)
-      : super(ActionType.UpdateLatestMessages);
 }
